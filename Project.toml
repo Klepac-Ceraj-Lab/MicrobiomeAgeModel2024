@@ -1,0 +1,7 @@
+name = "MicrobiomeAgeModel2024"
+uuid = "7c94f4c2-dbbd-4fd8-b1cc-c6e057d141c2"
+authors = ["Guilherme Fabur Bottino <gfahurbottino@gmail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1"
