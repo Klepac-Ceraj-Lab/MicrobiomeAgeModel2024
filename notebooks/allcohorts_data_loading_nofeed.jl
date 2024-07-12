@@ -166,9 +166,10 @@ m4efad_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/M4EFaD/at
 end
 
 ### Removing MW and MAM samples
+## Removing MW and MAM samples
 subset!(khula_pre_data, :site => x -> x .!= "Malawi")
-malnourished_samples = "m4efad-" .* subset(CSV.read("/home/guilherme/Repos/Leap/ext_data/M4EFaD/attic/m4efad_ages.csv", DataFrame; stringtype = String), :Condition => x -> x .== "MAM").sample_id
-subset!(m4efad_pre_data, :subject_id => x -> x .∉ Ref(malnourished_samples))
+healthy_m4efad_subjects = filter(x -> occursin(r"LCC2", x), m4efad_pre_data.subject_id)
+subset!(m4efad_pre_data, :subject_id => x -> x .∈ Ref(healthy_m4efad_subjects))
 
 ### Building the pooled dataset
 combined_inputs = @chain vcat(echo_pre_data, brainrise_pre_data, combine_pre_data, khula_pre_data, m4efad_pre_data, diabimmune_pre_data, cmd_pre_data; cols=:union) begin
