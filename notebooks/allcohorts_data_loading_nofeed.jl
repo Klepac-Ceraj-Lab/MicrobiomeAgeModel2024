@@ -212,9 +212,7 @@ end
 
 ### Calculating Shannon Diversity and Richness
 combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)])))
-subset!(combined_inputs, :richness => x -> x .>= 5)
 combined_inputs.shannon_index = map(x -> Microbiome.shannon(collect(x)), eachrow(combined_inputs[:, 11:ncol(combined_inputs)-1]))
-select!(combined_inputs, Not(:richness))
 
 ### Exporting pooled dataset
 CSV.write(joinpath(outdir, "combined_inputs.csv"), combined_inputs)
