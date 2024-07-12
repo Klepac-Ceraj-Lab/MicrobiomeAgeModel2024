@@ -166,9 +166,10 @@ m4efad_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/M4EFaD/at
 end
 
 ### Removing MW and MAM samples
+## Removing MW and MAM samples
 subset!(khula_pre_data, :site => x -> x .!= "Malawi")
-malnourished_samples = "m4efad-" .* subset(CSV.read("/home/guilherme/Repos/Leap/ext_data/M4EFaD/attic/m4efad_ages.csv", DataFrame; stringtype = String), :Condition => x -> x .== "MAM").sample_id
-subset!(m4efad_pre_data, :subject_id => x -> x .∉ Ref(malnourished_samples))
+healthy_m4efad_subjects = filter(x -> occursin(r"LCC2", x), m4efad_pre_data.subject_id)
+subset!(m4efad_pre_data, :subject_id => x -> x .∈ Ref(healthy_m4efad_subjects))
 
 ### Building the pooled dataset
 combined_inputs = @chain vcat(echo_pre_data, brainrise_pre_data, combine_pre_data, khula_pre_data, m4efad_pre_data, diabimmune_pre_data, cmd_pre_data; cols=:union) begin
@@ -196,20 +197,22 @@ insertcols!(combined_inputs, 2, :datagroup => map( x -> begin
 combined_inputs = unique(combined_inputs, :sample)
 
 for i in 1:nrow(combined_inputs)
+    sum_microbiome = sum(combined_inputs[i, 11:end])
     for j in 11:ncol(combined_inputs)
         if combined_inputs[i,j] < 0.0 
             combined_inputs[i,j] = 0.0
+            ( sum_microbiome > 0.0 ) && ( combined_inputs[i,j] = combined_inputs[i,j]*100.0/sum_microbiome )
         elseif (presence_absence & (combined_inputs[i,j] > 0.0))
             combined_inputs[i,j] = 1.0
+        else
+            ( sum_microbiome > 0.0 ) && ( combined_inputs[i,j] = combined_inputs[i,j]*100.0/sum_microbiome )
         end
     end
 end
 
 ### Calculating Shannon Diversity and Richness
 combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)])))
-subset!(combined_inputs, :richness => x -> x .>= 5)
 combined_inputs.shannon_index = map(x -> Microbiome.shannon(collect(x)), eachrow(combined_inputs[:, 11:ncol(combined_inputs)-1]))
-select!(combined_inputs, Not(:richness))
 
 ### Exporting pooled dataset
 CSV.write(joinpath(outdir, "combined_inputs.csv"), combined_inputs)
