@@ -197,11 +197,15 @@ insertcols!(combined_inputs, 2, :datagroup => map( x -> begin
 combined_inputs = unique(combined_inputs, :sample)
 
 for i in 1:nrow(combined_inputs)
+    sum_microbiome = sum(combined_inputs[i, 11:end])
     for j in 11:ncol(combined_inputs)
         if combined_inputs[i,j] < 0.0 
             combined_inputs[i,j] = 0.0
+            ( sum_microbiome > 0.0 ) && ( combined_inputs[i,j] = combined_inputs[i,j]*100.0/sum_microbiome )
         elseif (presence_absence & (combined_inputs[i,j] > 0.0))
             combined_inputs[i,j] = 1.0
+        else
+            ( sum_microbiome > 0.0 ) && ( combined_inputs[i,j] = combined_inputs[i,j]*100.0/sum_microbiome )
         end
     end
 end
