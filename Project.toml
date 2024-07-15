@@ -16,8 +16,10 @@ Leap = "e19c48ec-5b69-490e-8125-dadf8a0b819c"
 MLJ = "add582a8-e3ab-11e8-2d5e-e98b27df1bc7"
 Microbiome = "3bd8f0ae-a0f2-5238-a5af-e1b399a4940c"
 MultivariateStats = "6f286f6a-111f-5878-ab1e-185364afe411"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 RCall = "6f49c342-dc21-5d91-9882-a32aef131414"
 StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 
 [compat]

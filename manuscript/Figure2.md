@@ -21,6 +21,7 @@ using CategoricalArrays
 using GLM
 using StatsBase
 using StableRNGs
+using Polynomials
 ```
 
 ### Configurable parameters
@@ -101,6 +102,28 @@ The following block of code will train the model on the combination of cohorts, 
 #     )    
 # )
 
+# regression_Age_FullCV = probe_regression_randomforest(
+#     "regression_Age_FullCV",
+#     filtered_inputs,
+#     identity,
+#     collect(11:ncol(combined_inputs)),
+#     :ageMonths;
+#     split_strat = "subject",
+#     custom_input_group = nothing,
+#     unique_col = :sample,
+#     n_folds = 5,
+#     n_replicas = 50,
+#     n_rngs = 5,
+#     tuning_space = (; #PRODUCTION
+#         maxnodes_range = [ -1 ],
+#         nodesize_range = [ 7 ],
+#         min_samples_split = [ 2 ],
+#         sampsize_range = [ 0.8 ],
+#         mtry_range = [ 0 ],
+#         ntrees_range = [ 100 ]
+#     )    
+# )
+
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)
 
 # JLD2.@save joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
@@ -139,23 +162,24 @@ axA = Axis(
 hidedecorations!(axA, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 xlims!(axA, [1.99, 18.1]); ylims!(axA, [1.99, 18.1])
 @chain regression_Age_FullCV begin
-    predictions_to_plot(age_bins, "val"; hp = hp_idx)
+    predictions_to_plot(filtered_inputs, age_bins, "val"; hp = hp_idx)
     scatter!(axA, _[:, :ageMonths],  _[:, :test_prediction], color = [ (ccol, 0.6) for ccol in _[:, "datacolor"] ], marker = :circle)
 end
 ablines!(axA, 0, 1; linestyle = :dash, linewidth=2, color = :gray )
-# @chain regression_Age_Combined begin
-#     report_regression_merits()
-#     annotations!(
-#         ax2,
-#         [
-#             "RMSE: " * string(round(_[:, :Val_RMSE_mean][1]; digits = 4)) * " (months)",
-#             "r: " * string(round(_[:, :Val_Cor_mean][1]; digits = 4))
-#         ],
-#         [Point(15.0, 3.5), Point(15.0, 2.5)];
-#         fontsize = 24,
-#         align = (:center, :bottom)
-#     )
-# end
+@chain regression_Age_FullCV begin
+    report_regression_merits()
+    sort(:Val_RMSE_mean)
+    annotations!(
+        axA,
+        [
+            "RMSE: " * string(round(_[:, :Val_RMSE_mean][1]; digits = 4)) * " (months)",
+            "r: " * string(round(_[:, :Val_Cor_mean][1]; digits = 4))
+        ],
+        [Point(15.0, 3.5), Point(15.0, 2.5)];
+        fontsize = 14,
+        align = (:center, :bottom)
+    )
+end
 
 Legend(
     A_Subfig[2, 1],
