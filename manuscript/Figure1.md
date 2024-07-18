@@ -189,7 +189,7 @@ hidedecorations!(ax1); hidespines!(ax1)
 hidedecorations!(ax2); hidespines!(ax2)
 
 pie1 = pie!(ax1,
-   datasource_summary_table.Unique_subjects, color =datasource_summary_table.color,
+   datasource_summary_table.Unique_subjects, color = datasource_summary_table.color,
     radius = 4, inner_radius = 1.5, strokecolor = :white, strokewidth = 5
     )
 
@@ -201,7 +201,7 @@ subject_positions = (subject_angles[1:end-1] .+ subject_angles[2:end]) / 2
 for (i, pos) in enumerate(subject_positions)
     x = 4.8 * cos(pos)
     y = 4.8 * sin(pos)
-    text!(ax1, x, y, text = string(datasource_summary_table.Unique_subjects[i]), align = (:center, :center), fontsize=30, color=master_colors[datasource_summary_table.datasource[i]])
+    text!(ax1, x, y, text = string(datasource_summary_table.Unique_subjects[i]), align = (:center, :center), fontsize=32, color=master_colors[datasource_summary_table.datasource[i]])
 end
 
 pie2 = pie!(ax2,
@@ -216,7 +216,7 @@ subject_positions = (subject_angles[1:end-1] .+ subject_angles[2:end]) / 2
 for (i, pos) in enumerate(subject_positions)
     x = 4.8 * cos(pos)
     y = 4.8 * sin(pos)
-    text!(ax2, x, y, text = string(datasource_summary_table.Unique_samples[i]), align = (:center, :center), fontsize=30, color=master_colors[datasource_summary_table.datasource[i]])
+    text!(ax2, x, y, text = string(datasource_summary_table.Unique_samples[i]), align = (:center, :center), fontsize=32, color=master_colors[datasource_summary_table.datasource[i]])
 end
 
 Legend(
