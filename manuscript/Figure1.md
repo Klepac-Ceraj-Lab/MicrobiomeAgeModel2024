@@ -84,7 +84,7 @@ DE_Subfig  = GridLayout(figure1_master[2,1:2], alignmode=Outside())
 ## World map of data sources
 ```julia
 fig1_panelA = rotr90(load("manuscript/assets/Figure1_PanelA_WorldMap.PNG"))
-axA = Axis(AB_Subfig[1,1])
+axA = Axis(AB_Subfig[1,1], alignmode = Inside())
 hidedecorations!(axA); hidespines!(axA)
 image!(axA, fig1_panelA)
 ```
