@@ -71,8 +71,10 @@ println("After prevalence filtering, there are $(sum(map(sum, eachrow(filter_pre
 
 filtered_inputs = filter_prevalence(combined_inputs, prevalence_threshold)
 
-subset!(filtered_inputs, :richness => x -> x .>= 3) # at least 1% of the final number of predictors (posthoc)
+subset!(filtered_inputs, :richness => x -> x .>= 3) # Minimum smaple richness should be more than 1% of the final number of predictors (~150, posthoc), rounded to the ceiling (so, 2). Hence, richness has to be >= 3.
 select!(filtered_inputs, Not(:richness))
+
+CSV.write("manuscript/final_manuscript_inputs2.csv", filtered_inputs)
 ```
 
 ##  RF Model training
