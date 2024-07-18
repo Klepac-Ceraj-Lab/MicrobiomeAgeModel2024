@@ -241,6 +241,8 @@ barplot!(
     color = [ ( (el > 0) ? "blue" : "red" ) for el in importances_table.impsign[1:31] ],
     direction=:x
 )
+vlines!(axB, [ 0.0 ]; color = :black)
+
 ```
 
 ## Add labels
