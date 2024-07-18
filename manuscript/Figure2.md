@@ -103,31 +103,7 @@ The following block of code will train the model on the combination of cohorts, 
 #         ntrees_range = [ 100, 200 ]
 #     )    
 # )
-
-# regression_Age_FullCV = probe_regression_randomforest(
-#     "regression_Age_FullCV",
-#     filtered_inputs,
-#     identity,
-#     collect(11:ncol(combined_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     custom_input_group = nothing,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 50,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 7 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ 0 ],
-#         ntrees_range = [ 100 ]
-#     )    
-# )
-
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)
-
 # JLD2.@save joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 ```
 
