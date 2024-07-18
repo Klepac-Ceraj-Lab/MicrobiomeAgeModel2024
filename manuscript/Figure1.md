@@ -244,56 +244,56 @@ image!(axC, fig1_panelC)
 
 ## PERMANOVAS
 ```julia
-spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-1]), dims=1)
+spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-2]), dims=1)
 
-# lt4idx = combined_inputs.ageMonths .< 4.0
-# lt8idx = combined_inputs.ageMonths .< 8.0
-# commlabels = ["Taxa"]
-# mdlabels = [ "Age", "Country", "Data\nSource"]
+lt4idx = combined_inputs.ageMonths .< 4.0
+lt8idx = combined_inputs.ageMonths .< 8.0
+commlabels = ["Taxa"]
+mdlabels = [ "Age", "Country", "Data\nSource"]
 
-# pmn_all = permanovas(
-#     [ spedm ], 
-#     [
-#         combined_inputs.ageMonths,
-#         combined_inputs.site,
-#         combined_inputs.datasource,
-#     ]; commlabels, mdlabels
-# )
+pmn_all = permanovas(
+    [ spedm ], 
+    [
+        combined_inputs.ageMonths,
+        combined_inputs.site,
+        combined_inputs.datasource,
+    ]; commlabels, mdlabels
+)
 
-# pmn_lt4  = permanovas(
-#     [ spedm[lt4idx, lt4idx] ],
-#     [
-#         combined_inputs.ageMonths[lt4idx],
-#         combined_inputs.site[lt4idx],
-#         combined_inputs.datasource[lt4idx],
-#     ]; commlabels, mdlabels
-# )
+pmn_lt4  = permanovas(
+    [ spedm[lt4idx, lt4idx] ],
+    [
+        combined_inputs.ageMonths[lt4idx],
+        combined_inputs.site[lt4idx],
+        combined_inputs.datasource[lt4idx],
+    ]; commlabels, mdlabels
+)
 
-# pmn_lt8 = permanovas(
-#     [ spedm[lt8idx, lt8idx] ],
-#     [
-#         combined_inputs.ageMonths[lt8idx],
-#         combined_inputs.site[lt8idx],
-#         combined_inputs.datasource[lt8idx],
-#     ]; commlabels, mdlabels
-# )
+pmn_lt8 = permanovas(
+    [ spedm[lt8idx, lt8idx] ],
+    [
+        combined_inputs.ageMonths[lt8idx],
+        combined_inputs.site[lt8idx],
+        combined_inputs.datasource[lt8idx],
+    ]; commlabels, mdlabels
+)
 
-# pmn_all.label .= "all samples"
-# pmn_lt4.label .= "< 4mo"
-# pmn_lt8.label .= "< 8mo"
+pmn_all.label .= "all samples"
+pmn_lt4.label .= "< 4mo"
+pmn_lt8.label .= "< 8mo"
 
-# ## 2.2 Combined
-# fig = Figure(;size = (400,300))
-# ax = Axis(
-#     fig[1, 1];
-#     xticklabelsize = 16,
-#     yticklabelsize = 16,
-#     title = "PERMANOVAs",
-# )
+## 2.2 Combined
+fig = Figure(;size = (400,300))
+ax = Axis(
+    fig[1, 1];
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    title = "PERMANOVAs",
+)
 
-# plot_permanovas!(ax, vcat(pmn_all[[3,2,1],:], pmn_lt4[[3,2,1],:], pmn_lt8[[3,2,1],:]))
+plot_permanovas!(ax, vcat(pmn_all[[3,2,1],:], pmn_lt4[[3,2,1],:], pmn_lt8[[3,2,1],:]))
 
-# save(joinpath(outdir, "figures", "FigureSX_PERMANOVAs.png"), fig)
+save(joinpath(outdir, "figures", "FigureSX_PERMANOVAs.png"), fig)
 ```
 
 ## NMDS (Principal Coordinate Analysis)
