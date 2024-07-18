@@ -151,7 +151,13 @@ end
 cumulative_sums = cumsum(bar_heights, dims = 1)
 
 # Set up the figure and axis
-axB = Axis(AB_Subfig[3, 1], ylabel = "Unique samples", xlabel = "Age in Months", xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))))
+axB = Axis(
+    AB_Subfig[3, 1],
+    ylabel = "Number of samples",
+    xlabel = "Age in months",
+    xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))),
+    alignmode = Outside()
+)
 axB.rightspinevisible = false
 axB.topspinevisible = false
 hidedecorations!(axB, label = false, ticklabels = false, ticks = false, grid = true, minorgrid = true, minorticks = true)
