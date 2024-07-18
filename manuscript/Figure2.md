@@ -224,9 +224,15 @@ sort!(importances_table, :impsign; rev = true)
 axB = Axis(
     B_Subfig[1, 1];
     xlabel = "sign(R) x proportional importance",
-    yticks = (reverse(collect(1:31)), importances_table.variable[1:31]),
-    ylabel = "Predictor"
+    yticks = (reverse(collect(1:31)), [ replace(el, "_" => " ") for el in importances_table.variable[1:31] ]),
+    ylabel = "Predictor",
+    yticklabelsize=14,
+    yticklabelfont="TeX Gyre Heros Makie Italic"
 )
+
+tightlimits!(axB, Top())
+tightlimits!(axB, Bottom())
+hidedecorations!(axB, label = false, ticklabels = false, ticks = false, minorgrid = false, minorticks = false)
 
 barplot!(
     axB,
