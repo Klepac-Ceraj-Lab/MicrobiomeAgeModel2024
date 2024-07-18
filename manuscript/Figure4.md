@@ -216,6 +216,18 @@ function reformat_taxa(ttaxa::String, imptab::DataFrame)
     end
 end
 
+function reformat_ecs(eecs::String, colset::Dict; pattern::Regex = r"(\d+\.\d+\.\d+\.?\d*):\s*(.*)")
+
+    humann_ec_matches = eachmatch(pattern, eecs)
+
+    ec_num = string(first(humann_ec_matches).captures[1])
+    ec_fun = string(first(humann_ec_matches).captures[2])
+
+    rich(rich("█\t"; font = :bold, color = colset[ec_num[1]]), ec_fun, rich(" [$(ec_num)]"; font = :bold, color = colset[ec_num[1]]))
+    # Other examples of unicode rectangles: ▮ (version 1); █ ▉ ▊ ▋ ▌ ▍ ▎ ▏
+
+end
+
 ec_colors = Dict(
     '1' => "darkgreen",
     '2' => "chartreuse3",
