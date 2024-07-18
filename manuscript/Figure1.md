@@ -56,6 +56,7 @@ include("notebooks/allcohorts_data_loading_nofeed.jl")
 
 ### Number of unique samples and subjects before prevalence filtering
 ```julia
+replace!(combined_inputs.datasource, "DIABIMMUNE" => "CMD")
 datasource_summary_table = combine(
     groupby(combined_inputs, :datasource),
     :subject_id => (x -> length(unique(x))) => :Unique_subjects,
