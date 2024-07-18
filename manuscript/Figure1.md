@@ -89,6 +89,36 @@ hidedecorations!(axA); hidespines!(axA)
 image!(axA, fig1_panelA)
 ```
 
+## Figure 1, Legend between A and B
+```julia
+Legend(
+    AB_Subfig[2, 1],
+    [
+        MarkerElement(marker = :circle, color = :lightblue, markersize = 14),
+        MarkerElement(marker = :circle, color = :purple, markersize = 14),
+        MarkerElement(marker = :circle, color = :blue, markersize = 14),
+        # MarkerElement(marker = :circle, color = :darkgreen, markersize = 14),
+        MarkerElement(marker = :circle, color = :red, markersize = 14),
+        MarkerElement(marker = :circle, color = :orange, markersize = 14),
+        MarkerElement(marker = :circle, color = :darkgreen, markersize = 14)
+    ],
+    [
+        "CMD",
+        "ECHO-Resonance",
+        "1kDLEAP-Germina",
+        # "1kDLEAP-KhulaMW",
+        "1kDLEAP-Khula",
+        "1kDLEAP-Combine",
+        "1kDLEAP-M4EFaD"
+    ],
+    orientation = :vertical,
+    nbanks = 3,
+    labelsize = 14,
+    tellheight = true,
+    tellwidth = false
+)
+```
+
 ## Figure 1, Panel B - Stacked histogram of ages
 ```julia
 # Define the number of bins and bin edges
