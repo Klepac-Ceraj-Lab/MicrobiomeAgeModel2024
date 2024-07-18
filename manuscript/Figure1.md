@@ -67,6 +67,9 @@ datasource_summary_table = combine(
     )
 datasource_summary_table.color = [ master_colors[el] for el in datasource_summary_table.datasource ]
 @show sort!(datasource_summary_table, :Unique_subjects)
+
+subset!(combined_inputs, :richness => x -> x .>= 3) # Minimum sample richness should be more than 1% of the final number of predictors (~150, posthoc), rounded to the ceiling (so, 2). Hence, richness has to be >= 3.
+select!(combined_inputs, Not(:richness))
 ```
 
 # Creating Master Figure 1
