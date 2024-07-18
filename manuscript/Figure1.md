@@ -321,9 +321,11 @@ axD = Axis(
     DE_Subfig[1,1],
     xlabel = "MDS1 ("*string(round(100*MDS_variances[1]; digits = 2))*"%)",
     ylabel = "MDS2 ("*string(round(100*MDS_variances[2]; digits = 2))*"%)",
-    title = "By data source",
-    aspect = AxisAspect(1.2)
+    # title = "By data source",
+    aspect = AxisAspect(1.2),
+    alignmode = Outside()
 )
+hidedecorations!(axD, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 scD = scatter!(
     axD,
     MDS_columns[:,1],
@@ -343,9 +345,11 @@ axE = Axis(
     DE_Subfig[1,2],
     xlabel = "MDS1 ("*string(round(100*MDS_variances[1]; digits = 2))*"%)",
     ylabel = "MDS2 ("*string(round(100*MDS_variances[2]; digits = 2))*"%)",
-    title = "By age in months",
-    aspect = AxisAspect(1.2)
+    # title = "By age in months",
+    aspect = AxisAspect(1.2),
+    alignmode = Outside()
 )
+hidedecorations!(axE, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 scE = scatter!(
     axE,
     MDS_columns[:,1],
