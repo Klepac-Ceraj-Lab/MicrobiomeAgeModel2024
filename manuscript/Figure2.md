@@ -115,11 +115,11 @@ Assuming that `outdir` points to the same place where the model was stored when 
 
 # Creating Master Figure 2
 ```julia
-figure2_master = Figure(; size = (1000, 800))
+figure2_master = Figure(; size = (1200, 850))
 
-A_Subfig = GridLayout(figure2_master[1,1], alignmode=Outside()) 
-B_Subfig = GridLayout(figure2_master[1,2], alignmode=Outside())
-CDEFG_Subfig  = GridLayout(figure2_master[2,1:2], alignmode=Outside())
+A_Subfig = GridLayout(figure2_master[1,1], alignmode=Inside()) 
+B_Subfig = GridLayout(figure2_master[1,2], alignmode=Inside())
+CDEFG_Subfig  = GridLayout(figure2_master[2,1:2], alignmode=Inside())
 ```
 
 ## Scatterplot
