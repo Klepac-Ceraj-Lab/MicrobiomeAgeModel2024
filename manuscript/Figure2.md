@@ -129,9 +129,9 @@ hp_idx = 15 # checked with `sort(report_regression_merits(regression_Age_FullCV)
 
 axA = Axis(
     A_Subfig[1, 1];
-    xlabel = "Sample Collection Age (months)",
+    xlabel = "Sample collection age (months)",
     xticks = (2:1:18),
-    ylabel = "Microbial Age (months)",
+    ylabel = "Microbial age (months)",
     yticks = (2:1:18),
     aspect = AxisAspect(1.0)
     # alignmode = Outside(),
