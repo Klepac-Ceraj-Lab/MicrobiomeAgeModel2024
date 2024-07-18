@@ -243,6 +243,26 @@ barplot!(
 )
 vlines!(axB, [ 0.0 ]; color = :black)
 
+axislegend(axB,     [
+        PolyElement(color = :blue, markersize = 20),
+        PolyElement(color = :red, markersize = 20),
+        MarkerElement(marker = :+, color = :white),
+        MarkerElement(marker = :star4, color = :gray10, markersize = 16)
+    ],
+    [
+        "Positively correlated\nwith age",
+        "Negatively correlated\nwith age",
+        "",
+        "Features highlighted\nin main text",
+    ],
+    orientation = :vertical,
+    labelsize = 14,
+    position = :rb,
+    margin=(20,20,20,20), #right, left, bottom, top
+    alignmode = Inside()
+)
+```
+
 ```
 
 ## Add labels
