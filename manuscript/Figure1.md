@@ -1,47 +1,47 @@
-# Figure 1 - General Statitics, Community analysis
+# Figure 1 - General Statistics, Community analysis
 
 ## Pre-configuration
 
 ### Loading Packages 
 ```julia
-# using Chain
-# using XLSX
-# using DataFrames
-# using MultivariateStats
-# using Microbiome
-# using Distances
-# using Diversity
-# using Random
-# using JLD2
-# using Statistics
-# using CairoMakie
-# using Leap
-# using CategoricalArrays
-# using GLM
-# using StatsBase
-# using StableRNGs
+using Chain
+using XLSX
+using DataFrames
+using MultivariateStats
+using Microbiome
+using Distances
+using Diversity
+using Random
+using JLD2
+using Statistics
+using CairoMakie
+using Leap
+using CategoricalArrays
+using GLM
+using StatsBase
+using StableRNGs
 ```
 
 ### Configurable parameters
 ```julia
-# master_colors = Dict(
-#     "ECHO" => "purple",
-#     "ECHO-RESONANCE" => "purple",
-#     "1kDLEAP-BRAINRISE" => "blue",
-#     "1kDLEAP-CORK" => "orange",
-#     "1kDLEAP-COMBINE" => "orange",
-#     "1kDLEAP-KHULA" => "red",
-#     "1kDLEAP-M4EFAD" => "darkgreen",
-#     "DIABIMMUNE" => "lightblue",
-#     "CMD" => "lightblue"
-# )
+master_colors = Dict(
+    "ECHO" => "purple",
+    "ECHO-RESONANCE" => "purple",
+    "1kDLEAP-GERMINA" => "blue",
+    "1kDLEAP-CORK" => "orange",
+    "1kDLEAP-COMBINE" => "orange",
+    "1kDLEAP-KHULA" => "red",
+    "1kDLEAP-M4EFAD" => "darkgreen",
+    "DIABIMMUNE" => "lightblue",
+    "CMD" => "lightblue"
+)
 
-# experiment_name = "2024AgeModelManuscript"
-# outdir = joinpath(pwd(), "results", experiment_name)
-# figdir = joinpath(outdir, "figures")
-# deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-# isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-# presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
+experiment_name = "2024AgeModelManuscript"
+outdir = joinpath(pwd(), "results", experiment_name)
+figdir = joinpath(outdir, "figures")
+deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
+isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
+presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
 ```
 
 ## Loading data
@@ -49,7 +49,7 @@
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-# include("notebooks/allcohorts_data_loading_nofeed.jl")
+include("notebooks/allcohorts_data_loading_nofeed.jl")
 ```
 
 ##  Summary Tables
