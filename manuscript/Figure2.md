@@ -29,7 +29,7 @@ using Polynomials
 master_colors = Dict(
     "ECHO" => "purple",
     "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-BRAINRISE" => "blue",
+    "1kDLEAP-GERMINA" => "blue",
     "1kDLEAP-CORK" => "orange",
     "1kDLEAP-COMBINE" => "orange",
     "1kDLEAP-KHULA" => "red",
