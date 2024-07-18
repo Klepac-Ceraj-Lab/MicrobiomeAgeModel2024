@@ -138,7 +138,7 @@ axA = Axis(
     # title = "Predictions for Test/Validation data"
 )
 hidedecorations!(axA, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
-xlims!(axA, [1.99, 18.1]); ylims!(axA, [1.99, 18.1])
+xlims!(axA, [1.99, 18.01]); ylims!(axA, [1.99, 18.01])
 @chain regression_Age_FullCV begin
     predictions_to_plot(filtered_inputs, age_bins, "val"; hp = hp_idx)
     scatter!(axA, _[:, :ageMonths],  _[:, :test_prediction], color = [ (ccol, 0.6) for ccol in _[:, "datacolor"] ], marker = :circle)
@@ -150,12 +150,12 @@ ablines!(axA, 0, 1; linestyle = :dash, linewidth=2, color = :gray )
     annotations!(
         axA,
         [
-            "RMSE: " * string(round(_[:, :Val_RMSE_mean][1]; digits = 4)) * " (months)",
-            "r: " * string(round(_[:, :Val_Cor_mean][1]; digits = 4))
+            "RMSE = " * string(round(_[:, :Val_RMSE_mean][1]; digits = 2)) * " mo",
+            "r = " * string(round(_[:, :Val_Cor_mean][1]; digits = 2))
         ],
-        [Point(15.0, 3.5), Point(15.0, 2.5)];
+        [Point(17.8, 2.6), Point(17.8, 2.1)];
         fontsize = 14,
-        align = (:center, :bottom)
+        align = (:right, :bottom)
     )
 end
 
