@@ -271,11 +271,11 @@ axB = Axis(
     title = "12 months timepoint", titlesize = 20)
 
 ## Plot with subsets to make the figure slightly smaller and simpler
-hm = heatmap!(ax1, ordered_youngsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
-hm = heatmap!(ax2, ordered_oldsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
+hm = heatmap!(axA, ordered_youngsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
+hm = heatmap!(axB, ordered_oldsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
 
 Legend(
-    fig[2, 1],
+    figure4_master[2, 1],
     [
         MarkerElement(marker = :circle, color = ec_colors['1'], markersize = 14),
         MarkerElement(marker = :circle, color = ec_colors['2'], markersize = 14),
@@ -298,9 +298,7 @@ Legend(
     tellwidth = false
 )
 
-Colorbar(fig[2,2], hm, label = "log10(CPM)", vertical = false)
-
-fig
+Colorbar(figure4_master[2,2], hm, label = "log10(CPM)", vertical = false)
 
 save(joinpath(outdir, "figures", "functionalHeatmap.png"), fig)
 save(joinpath(outdir, "figures", "functionalHeatmap.eps"), fig)
