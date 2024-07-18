@@ -173,9 +173,9 @@ Legend(
     [
         "CMD",
         "ECHO-Resonance",
-        "1kDLEAP-Brainrise",
+        "1kDLEAP-Germina",
         # "1kDLEAP-KhulaMW",
-        "1kDLEAP-KhulaSA",
+        "1kDLEAP-Khula",
         "1kDLEAP-Combine",
         "1kDLEAP-M4EFaD"
     ],
@@ -183,7 +183,9 @@ Legend(
     nbanks = 3,
     labelsize = 12,
     tellheight = true,
-    tellwidth = true
+    tellwidth = true,
+    margin=(0,0,-20,20), #right, left, bottom, top
+    alignmode = Inside()
 )
 ```
 
