@@ -237,8 +237,6 @@ ec_colors = Dict(
     '6' => "midnightblue"
 )
 
-reformat_ecs(eecs::String, colset::Dict) = rich(rich(string(eecs[1]); font = :bold, color = colset[eecs[1]]), replace(eecs[2:end], ":" => ":\t"))
-
 subset_to_plot = vcat(collect(1:8), collect(19:30))
 fig = Figure(; size = (1500, 1400))
 
