@@ -1,4 +1,4 @@
-# Figure 2 - Model benchmark, Importance analysis
+# Figure 4 - Functional analysis heatmaps and top changing functions
 
 ## Pre-configuration
 
