@@ -358,7 +358,7 @@ scE = scatter!(
     colormap = :viridis
 )
 
-Colorbar(DE_Subfig[1, 3], scE, tellheight = true)
+Colorbar(DE_Subfig[1, 3], scE, tellheight = false, alignmode = Inside())
 
 # save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), fig)
 # save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), fig)
