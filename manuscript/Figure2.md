@@ -395,8 +395,9 @@ rowsize!(CDEFG_Subfig, 2, Relative(0.35))
 ```
 
 # Export Figure 2
-
 ```julia
 save(joinpath(outdir, "figures", "Figure2.png"), figure2_master)
+save(joinpath(outdir, "figures", "Figure2.eps"), figure2_master)
+save(joinpath(outdir, "figures", "Figure2.svg"), figure2_master)
 figure2_master
 ```
