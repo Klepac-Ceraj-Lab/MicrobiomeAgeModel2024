@@ -238,10 +238,17 @@ ec_colors = Dict(
 )
 
 subset_to_plot = vcat(collect(1:8), collect(19:30))
-fig = Figure(; size = (1500, 1400))
+```
 
-ax1 = Axis(
-    fig[1, 1],
+# Creating Master Figure 4
+```julia
+figure4_master = Figure(; size = (1500, 1400))
+```
+
+## Figure 2, Panels A and B - Functional Heatmaps
+```julia
+axA = Axis(
+    figure4_master[1, 1],
     xticks = (1:length(ordered_taxa[subset_to_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_to_plot] ]),
     yticks = (1:length(ordered_functions), [ reformat_ecs(el, ec_colors) for el in ordered_functions ]),
     xticklabelrotation = pi/2,
@@ -249,10 +256,10 @@ ax1 = Axis(
     yticklabelsize = 18,
     yreversed = true,
     xticklabelfont = "TeX Gyre Heros Makie Italic",
-    title = "Samples < 4 months old", titlesize = 20)
-hideydecorations!(ax1)
-ax2 = Axis(
-    fig[1, 2],
+    title = "3 months timepoint", titlesize = 20)
+hideydecorations!(axA)
+axB = Axis(
+    figure4_master[1, 2],
     xticks = (1:length(ordered_taxa[subset_to_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_to_plot] ]),
     yticks = (1:length(ordered_functions), [ reformat_ecs(el, ec_colors) for el in ordered_functions ]),
     xticklabelrotation = pi/2,
@@ -261,7 +268,7 @@ ax2 = Axis(
     yaxisposition = :right,
     xticklabelfont = "TeX Gyre Heros Makie Italic",
     yreversed = true,
-    title = "Samples > 9 months old", titlesize = 20)
+    title = "12 months timepoint", titlesize = 20)
 
 ## Plot with subsets to make the figure slightly smaller and simpler
 hm = heatmap!(ax1, ordered_youngsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
