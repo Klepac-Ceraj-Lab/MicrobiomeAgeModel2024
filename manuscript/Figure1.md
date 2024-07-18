@@ -303,11 +303,11 @@ save(joinpath(outdir, "figures", "FigureSX_PERMANOVAs.png"), fig)
 using MultivariateStats
 
 if presence_absence
-    MDS_results = fit(PCA, spedm; maxoutdim = 20)
+    MDS_results = StatsBase.fit(PCA, spedm; maxoutdim = 20)
     MDS_columns = DataFrame(:MDS1 => MDS_results.proj[:,1], :MDS2 => MDS_results.proj[:,2], :MDS3 => MDS_results.proj[:,3], :MDS4 => MDS_results.proj[:,4], :MDS5 => MDS_results.proj[:,5])
     MDS_variances = MDS_results.prinvars ./ sum(MDS_results.prinvars)
 else
-    MDS_results = fit(MDS, spedm; maxoutdim = 20, distances=true)
+    MDS_results = StatsBase.fit(MDS, spedm; maxoutdim = 20, distances=true)
     MDS_columns = DataFrame(:MDS1 => MDS_results.U[:,1], :MDS2 => MDS_results.U[:,2], :MDS3 => MDS_results.U[:,3], :MDS4 => MDS_results.U[:,4], :MDS5 => MDS_results.U[:,5])
     MDS_variances = MDS_results.λ ./ sum(MDS_results.λ)
 end
