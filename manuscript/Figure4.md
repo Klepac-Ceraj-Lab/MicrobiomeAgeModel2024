@@ -300,6 +300,8 @@ Legend(
 
 Colorbar(figure4_master[2,2], hm, label = "log10(CPM)", vertical = false)
 
-save(joinpath(outdir, "figures", "functionalHeatmap.png"), fig)
-save(joinpath(outdir, "figures", "functionalHeatmap.eps"), fig)
+save(joinpath(outdir, "figures", "Figure4.png"), figure4_master)
+save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
+save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
+figure4_master
 ```
