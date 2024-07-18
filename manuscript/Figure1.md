@@ -367,26 +367,26 @@ Colorbar(DE_Subfig[1, 3], scE, tellheight = false, alignmode = Inside())
 
 ## Add labels
 ```julia
-Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
 ```julia
 
-colgap!(figure1_master.layout, 1)
-rowgap!(figure1_master.layout, 1)
-colgap!(AB_Subfig, 1)
-rowgap!(AB_Subfig, 1)
-colgap!(C_Subfig, 1)
-rowgap!(C_Subfig, 1)
-colgap!(DE_Subfig, 1)
-rowgap!(DE_Subfig, 1)
+colgap!(figure1_master.layout, 0)
+rowgap!(figure1_master.layout, 0)
+colgap!(AB_Subfig, 0)
+rowgap!(AB_Subfig, 0)
+colgap!(C_Subfig, 0)
+rowgap!(C_Subfig, 0)
+colgap!(DE_Subfig, 10)
+rowgap!(DE_Subfig, 0)
 
-colsize!(figure1_master.layout, 2, Relative(0.4))
+colsize!(figure1_master.layout, 2, Relative(0.38))
 rowsize!(figure1_master.layout, 2, Relative(0.4))
 rowsize!(AB_Subfig, 1, Relative(0.50))
 rowsize!(AB_Subfig, 2, Relative(0.15))
