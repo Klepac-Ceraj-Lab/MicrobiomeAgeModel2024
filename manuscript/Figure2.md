@@ -263,6 +263,105 @@ axislegend(axB,     [
 )
 ```
 
+## Figure 2, Panels C-G - Scatter plots
+
+List of features selected to plot according to Figure 2, Pabel B:
+```julia
+features_to_plot = [
+    "shannon_index",
+    "Faecalibacterium_prausnitzii",
+    "Dorea_formicigenerans",
+    "Bifidobacterium_breve",
+    "Escherichia_coli"
+]
+```
+
+### Plotting the panels:
+```julia
+for (cc, ss) in enumerate(features_to_plot)
+
+    randord = randperm(length(filtered_inputs.ageMonths))
+
+    if (cc == 1) ## Shannon Plot
+
+        ax = Axis(
+            CDEFG_Subfig[1:2, cc];
+            xlabel = "Age in Months",
+            ylabel = "Abundance",
+            xticks = 2:4:18,
+            title = replace(ss, "_" => " "),
+            yticklabelsize=14,
+            titlefont="TeX Gyre Heros Makie Italic"
+        )
+        
+        xlims!(ax, (1.99, 18.01))
+        ylims!(ax, (-0.01, 4.01))
+        tightlimits!(axB, Bottom())
+        hidexdecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+        hideydecorations!(ax, label = true, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+        scatter!(
+            ax,
+            combined_inputs.ageMonths[randord][combined_inputs[:, ss][randord] .!= 0.0],
+            combined_inputs[:, ss][randord][combined_inputs[:, ss][randord] .!= 0.0],
+            color = [ (ccol, 0.6) for ccol in combined_inputs[:, "datacolor"][randord] ][combined_inputs[:, ss][randord] .!= 0.0]
+        )
+
+    else
+
+        ax = Axis(
+            CDEFG_Subfig[1, cc];
+            xlabel = "Age in Months",
+            ylabel = "Abundance",
+            xticks = 2:4:18,
+            title = replace(ss, "_" => " "),
+            yticklabelsize=14,
+            titlefont="TeX Gyre Heros Makie Italic"
+        )
+
+        xlims!(ax, (1.99, 18.01))
+
+        hidedecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+        hidexdecorations!(ax)
+
+        scatter!(
+            ax,
+            combined_inputs.ageMonths[randord][combined_inputs[:, ss][randord] .!= 0.0],
+            combined_inputs[:, ss][randord][combined_inputs[:, ss][randord] .!= 0.0],
+            color = [ (ccol, 0.6) for ccol in combined_inputs[:, "datacolor"][randord] ][combined_inputs[:, ss][randord] .!= 0.0]
+        )
+
+        axbt = Axis(
+            CDEFG_Subfig[2, cc];
+            xlabel = "Age in Months",
+            ylabel = "Prevalence",
+            yticks = (0.0:0.25:1.0),
+            xticks = 2:4:18,
+            yticklabelsize=14
+        )
+
+        xlims!(axbt, (1.99, 18.01))
+        ylims!(axbt, (-0.01, 1.01))
+
+        linkxaxes!(ax, axbt)
+        hidedecorations!(axbt, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+        intervals = 2.0:1.0:18.0
+        prevalences = zeros(Float64, length(intervals)-1)
+
+        for (i, (lb,ub)) in enumerate(zip(collect(intervals[1:end-1]), collect(intervals[2:end])))
+            interval_inputs = subset(filtered_inputs, :ageMonths => x -> ( lb .<= x .< ub ))
+            prevalences[i] = mean(interval_inputs[:,ss] .> 0.0)
+        end
+
+        barplot!(
+            axbt,
+            intervals[1:end-1] .+ 0.5,
+            prevalences,
+            color = :gray20
+        )
+    end
+end
 ```
 
 ## Add labels
