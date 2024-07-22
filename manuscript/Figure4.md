@@ -2,11 +2,12 @@
 
 ## Pre-configuration
 
-### Loading Packages 
+### Loading Packages
+
 ```julia
 using Chain
 using XLSX
-using DataFrames
+using DataFrames # this isn't in Project.toml
 using MultivariateStats
 using Microbiome
 using Clustering
@@ -26,6 +27,7 @@ using Polynomials
 ```
 
 ### Configurable parameters
+
 ```julia
 experiment_name = "2024AgeModelManuscript"
 outdir = joinpath(pwd(), "results", experiment_name)
@@ -34,6 +36,7 @@ deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatte
 ```
 
 ## Helper functions
+
 ```julia
 extremes(v::AbstractVector, n::Integer) = vcat(v[1:n], v[(end-n+1):end])
 
@@ -50,6 +53,7 @@ end
 ```
 
 ## Loading data
+
 ```julia
 JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 taxonomic_profiles = regression_Age_FullCV.original_df
@@ -75,6 +79,7 @@ longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeu
 ```
 
 ## Finding the important predictors
+
 ```julia
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
 hp_idx = 15
@@ -90,9 +95,10 @@ important_bugs = importances_table[1:30, :variable]
 ## Selecting samples and functions for functional analysis
 
 Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
+
 ```julia
 filtered_functions = union( name.(features(filtered_functional_profiles)) )
-selected_functions_widedfs = [ comm2wide(filter(feat-> name((feat)) == this_function, filtered_functional_profiles)) for this_function in filtered_functions ]
+selected_functions_widedfs = [ comm2wide(filtered_functional_profiles[this_function, :]) for this_function in filtered_functions ]
 
 scores = Vector{Float64}(undef, length(filtered_functions))
 diff_MEANs = Vector{Float64}(undef, length(filtered_functions))
@@ -100,16 +106,17 @@ foldchanges = Vector{Float64}(undef, length(filtered_functions))
 diff_STDs = Vector{Float64}(undef, length(filtered_functions))
 diff_CIs = Vector{Float64}(undef, length(filtered_functions))
 
-for i in eachindex(selected_functions_widedfs)
-    selected_functions_widedfs[i].sum = map(x -> sum(x)*1e6, eachrow(Matrix(selected_functions_widedfs[i][:, 5:end])))
+for (i, f) in enumerate(filtered_functions[1:5])
+    df = comm2wide(filtered_functional_profiles[Regex(f), :])
+    df.sum = map(x -> sum(x)*1e6, eachrow(Matrix(df[:, 5:end])))
 
-    select!(selected_functions_widedfs[i], [:sample, :subject_id, :ageMonths, :visit, :sum])
-    youngsamps = subset(selected_functions_widedfs[i], :visit => x -> x .== "3mo")
-    # youngsamps = subset(selected_functions_widedfs[i], :ageMonths => x -> x .<= 4.0)
+    select!(df, [:sample, :subject_id, :ageMonths, :visit, :sum])
+    youngsamps = subset(df, :visit => x -> x .== "3mo")
+    # youngsamps = subset(df, :ageMonths => x -> x .<= 4.0)
 
     select!(youngsamps, [:subject_id, :sum])
-    oldsamps = subset(selected_functions_widedfs[i], :visit => x -> x .== "12mo")
-    # oldsamps = subset(selected_functions_widedfs[i], :ageMonths => x -> x .>= 9.0)
+    oldsamps = subset(df, :visit => x -> x .== "12mo")
+    # oldsamps = subset(df, :ageMonths => x -> x .>= 9.0)
 
     select!(oldsamps, [:subject_id, :sum])
     @show allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
@@ -124,6 +131,7 @@ end
 ```
 
 We aimed to plot the 1.5% extremal ECs, or:
+
 ```julia
 n_to_collect = ceil(Int64, (length(filtered_functions)*0.015)/2.0)
 func_idxes = extremes(sortperm(scores), n_to_collect)
@@ -145,6 +153,7 @@ sort!(func_stats_df, :fold_change)
 ```
 
 ## Computing each taxa's contribution to each genefunction on each age range
+
 ```julia
 youngsamplemat = zeros(length(important_bugs), length(selected_functions))
 oldsamplemat = zeros(length(important_bugs), length(selected_functions))
@@ -268,11 +277,13 @@ subset_to_plot = collect(1:30)
 ```
 
 # Creating Master Figure 4
+
 ```julia
 figure4_master = Figure(; size = (1500, 1400))
 ```
 
 ## Figure 2, Panels A and B - Functional Heatmaps
+
 ```julia
 axA = Axis(
     figure4_master[1, 1],
@@ -332,3 +343,4 @@ save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
 figure4_master
 ```
+
