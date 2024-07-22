@@ -97,17 +97,18 @@ important_bugs = importances_table[1:30, :variable]
 Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
 
 ```julia
-filtered_functions = union( name.(features(filtered_functional_profiles)) )
-selected_functions_widedfs = [ comm2wide(filtered_functional_profiles[this_function, :]) for this_function in filtered_functions ]
+filtered_functions = union( first.(split.(name.(features(filtered_functional_profiles)), '|')))
 
-scores = Vector{Float64}(undef, length(filtered_functions))
-diff_MEANs = Vector{Float64}(undef, length(filtered_functions))
-foldchanges = Vector{Float64}(undef, length(filtered_functions))
-diff_STDs = Vector{Float64}(undef, length(filtered_functions))
-diff_CIs = Vector{Float64}(undef, length(filtered_functions))
+func_stats_df = map(enumerate(filtered_functions)) do (i,f)
+    i % 10 == 0 && @info i
+    f == "UNGROUPED" && return (; function_name = f, score = NaN, difference = NaN, fold_change = NaN, difference_SD = NaN, difference_CI = NaN)
+    f == "UNMAPPED" && return (; function_name = f, score = NaN, difference = NaN, fold_change = NaN, difference_SD = NaN, difference_CI = NaN)
 
-for (i, f) in enumerate(filtered_functions[1:5])
-    df = comm2wide(filtered_functional_profiles[Regex(f), :])
+    
+    fnum = split(first(split(f, ':')), '.')
+    srch = Regex("^" * join(fnum, raw"\.") * ":")
+
+    df = comm2wide(filtered_functional_profiles[srch, :])
     df.sum = map(x -> sum(x)*1e6, eachrow(Matrix(df[:, 5:end])))
 
     select!(df, [:sample, :subject_id, :ageMonths, :visit, :sum])
@@ -119,49 +120,46 @@ for (i, f) in enumerate(filtered_functions[1:5])
     # oldsamps = subset(df, :ageMonths => x -> x .>= 9.0)
 
     select!(oldsamps, [:subject_id, :sum])
-    @show allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
+    allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
-    scores[i] = round( (sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .* sign.(allsamps.sum_1 .- allsamps.sum)) / nrow(allsamps)); digits = 2)
+    score = round( (sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .* sign.(allsamps.sum_1 .- allsamps.sum)) / nrow(allsamps)); digits = 2)
 
-    diff_MEANs[i] = mean(allsamps.sum_1) - mean(allsamps.sum)
-    foldchanges[i] = mean(log10.(allsamps.sum_1 .+ 1e-3)) - mean(log10.(allsamps.sum .+ 1e-3))
-    diff_STDs[i] = Statistics.std((allsamps.sum_1) .- mean(allsamps.sum))
-    diff_CIs[i] = ( 1.96 * Statistics.std((allsamps.sum_1) .- mean(allsamps.sum)) ) / sqrt(length(allsamps.sum_1))
-end
+    difference = mean(allsamps.sum_1) - mean(allsamps.sum)
+    fold_change = mean(log10.(allsamps.sum_1 .+ 1e-3)) - mean(log10.(allsamps.sum .+ 1e-3))
+    difference_SD = Statistics.std((allsamps.sum_1) .- mean(allsamps.sum))
+    difference_CI = ( 1.96 * Statistics.std((allsamps.sum_1) .- mean(allsamps.sum)) ) / sqrt(length(allsamps.sum_1))
+    return (; function_name = f, score, difference, fold_change, difference_SD, difference_CI)
+end |> DataFrame
 ```
 
 We aimed to plot the 1.5% extremal ECs, or:
 
 ```julia
+subset!(func_stats_df, "score"=> ByRow(!isnan))
 n_to_collect = ceil(Int64, (length(filtered_functions)*0.015)/2.0)
-func_idxes = extremes(sortperm(scores), n_to_collect)
+func_idxes = extremes(sortperm(func_stats_df.score), n_to_collect)
 @show selected_functions = sort(filtered_functions[func_idxes])[1:end]
-
-func_stats_df = DataFrame(
-    :function_name => filtered_functions,
-    :formatted_diff => [ "$(round(i; digits = 2)) ± $(round(j; digits = 2))" for (i,j) in zip(diff_MEANs,diff_CIs) ],
-    :difference => diff_MEANs,
-    :fold_change => foldchanges,
-    :score => scores,
-    :difference_CI => diff_CIs,
-    :difference_SD => diff_STDs,    
+transform!(func_stats_df, AsTable(["difference", "difference_CI"])=> ByRow(nt->
+           "$(round(nt.difference; digits = 2)) ± $(round(nt.difference_CI, digits = 2))"
+            )
 )
-sort!(func_stats_df, :score)
-sort!(func_stats_df, :difference)
-sort!(func_stats_df, :fold_change)
+
+
+sort!(func_stats_df, [:fold_change, :difference, :score])
 
 ```
 
 ## Computing each taxa's contribution to each genefunction on each age range
 
 ```julia
+important_bugs = ["Faecalibacterium_prausnitzii", "Anaerostipes_hadrus", "Blautia_wexlerae", "Roseburia_inulinivorans", "Flavonifractor_plautii", "Eubacterium_hallii", "Ruminococcus_gnavus", "Ruminococcus_bromii", "Clostridium_innocuum", "Dorea_longicatena", "Fusicatenibacter_saccharivorans", "Erysipelatoclostridium_ramosum", "Intestinibacter_bartlettii", "Escherichia_coli", "Eubacterium_eligens", "Enterococcus_faecalis", "Eubacterium_rectale", "Clostridium_symbiosum", "Blautia_obeum", "Agathobaculum_butyriciproducens", "Roseburia_faecis", "Dorea_formicigenerans", "Streptococcus_thermophilus", "Firmicutes_bacterium_CAG_41", "Roseburia_intestinalis", "Bifidobacterium_breve", "Clostridium_sp_AM22_11AC", "Bifidobacterium_longum", "Haemophilus_parainfluenzae", "Eggerthella_lenta"]
 youngsamplemat = zeros(length(important_bugs), length(selected_functions))
 oldsamplemat = zeros(length(important_bugs), length(selected_functions))
 
 for i in eachindex(important_bugs)
     for j in eachindex(selected_functions)
 
-        try            
+        try
             this_filtered_profiles = filter(feat-> (hastaxon(feat) && (name(feat) == selected_functions[j]) && (name(taxon(feat)) == important_bugs[i])), functional_profiles)
 
             this_widetable = comm2wide(this_filtered_profiles)
