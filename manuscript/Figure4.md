@@ -27,27 +27,15 @@ using Polynomials
 
 ### Configurable parameters
 ```julia
-master_colors = Dict(
-    "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-GERMINA" => "blue",
-    "1kDLEAP-COMBINE" => "orange",
-    "1kDLEAP-KHULA" => "red",
-    "1kDLEAP-M4EFAD" => "darkgreen",
-    "DIABIMMUNE" => "lightblue",
-    "CMD" => "lightblue"
-)
-
 experiment_name = "2024AgeModelManuscript"
 outdir = joinpath(pwd(), "results", experiment_name)
 figdir = joinpath(outdir, "figures")
 deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
 ```
 
 ## Helper functions
 ```julia
-extremes(v::AbstractVector, n::Integer) = vcat(v[1:n], v[end-n:end])
+extremes(v::AbstractVector, n::Integer) = vcat(v[1:n], v[(end-n+1):end])
 
 function myfeaturefunc(s::String)
     s = replace(s, r"\|g__\w+\."=>"|")
@@ -72,10 +60,10 @@ functional_mdata = @chain taxonomic_profiles begin
 end 
 
 functional_profiles = myload(ECProfiles(); timepoint_metadata = functional_mdata) # this can take a bit
-relativeabundance!(functional_profiles)
-ecs_mdata = DataFrame(get(functional_profiles))
-samples_inrename = ecs_mdata.sample
-samples_expected = functional_mdata.sample
+filtered_functional_profiles = relativeabundance(filter(f -> name(f) == "UNMAPPED" || hastaxon(f), functional_profiles))
+ecs_mdata = DataFrame(get(filtered_functional_profiles))
+# samples_inrename = ecs_mdata.sample
+# samples_expected = functional_mdata.sample
 # @assert (all(samples_expected .∈ Ref(samples_inrename)) & all(samples_inrename .∈ Ref(samples_expected)))
 # setdiff(samples_expected, samples_inrename)
 # setdiff(samples_inrename, samples_expected)
@@ -93,7 +81,7 @@ hp_idx = 15
 
 importances_table = @chain Leap.hpimportances(regression_Age_FullCV, hp_idx) begin
     subset(:variable => x -> x .!= "richness")
-    subset(:variable => x -> x .!= "shannon_index")
+    subset(:variable => x -> x .!= "Shannon_index")
 end
 
 important_bugs = importances_table[1:30, :variable]
@@ -103,9 +91,8 @@ important_bugs = importances_table[1:30, :variable]
 
 Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
 ```julia
-filtered_profiles = filter(feat-> hastaxon(feat), functional_profiles)
-filtered_functions = union( name.(features(filtered_profiles)) )
-selected_functions_widedfs = [ comm2wide(filter(feat-> name((feat)) == this_function, filtered_profiles)) for this_function in filtered_functions ]
+filtered_functions = union( name.(features(filtered_functional_profiles)) )
+selected_functions_widedfs = [ comm2wide(filter(feat-> name((feat)) == this_function, filtered_functional_profiles)) for this_function in filtered_functions ]
 
 scores = Vector{Float64}(undef, length(filtered_functions))
 diff_MEANs = Vector{Float64}(undef, length(filtered_functions))
@@ -128,8 +115,7 @@ for i in eachindex(selected_functions_widedfs)
     @show allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
     scores[i] = round( (sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .* sign.(allsamps.sum_1 .- allsamps.sum)) / nrow(allsamps)); digits = 2)
-    # scores[i] = sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum_1 .> allsamps.sum)) - sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum .> allsamps.sum_1)) # This is really good!
-    # scores[i] = sum( ((allsamps.sum_1 .> 100) .| (allsamps.sum .> 100) ) .& (allsamps.sum_1 .> allsamps.sum)) - sum( ((allsamps.sum_1 .> 100) .| (allsamps.sum .> 100) ) .& (allsamps.sum .> allsamps.sum_1)) # This is really good!
+
     diff_MEANs[i] = mean(allsamps.sum_1) - mean(allsamps.sum)
     foldchanges[i] = mean(log10.(allsamps.sum_1 .+ 1e-3)) - mean(log10.(allsamps.sum .+ 1e-3))
     diff_STDs[i] = Statistics.std((allsamps.sum_1) .- mean(allsamps.sum))
@@ -141,7 +127,7 @@ We aimed to plot the 1.5% extremal ECs, or:
 ```julia
 n_to_collect = ceil(Int64, (length(filtered_functions)*0.015)/2.0)
 func_idxes = extremes(sortperm(scores), n_to_collect)
-@show selected_functions = sort(filtered_functions[func_idxes])[1:end-1]
+@show selected_functions = sort(filtered_functions[func_idxes])[1:end]
 
 func_stats_df = DataFrame(
     :function_name => filtered_functions,
