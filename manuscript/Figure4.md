@@ -28,10 +28,8 @@ using Polynomials
 ### Configurable parameters
 ```julia
 master_colors = Dict(
-    "ECHO" => "purple",
     "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-BRAINRISE" => "blue",
-    "1kDLEAP-CORK" => "orange",
+    "1kDLEAP-GERMINA" => "blue",
     "1kDLEAP-COMBINE" => "orange",
     "1kDLEAP-KHULA" => "red",
     "1kDLEAP-M4EFAD" => "darkgreen",
@@ -67,7 +65,6 @@ end
 ```julia
 JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 taxonomic_profiles = regression_Age_FullCV.original_df
-subset!(taxonomic_profiles, :subject_id => x -> x .!= "khula-191-63214792")
 
 functional_mdata = @chain taxonomic_profiles begin
     khula_bugvec = subset(:datasource => x -> x .== "1kDLEAP-KHULA")
@@ -79,15 +76,14 @@ relativeabundance!(functional_profiles)
 ecs_mdata = DataFrame(get(functional_profiles))
 samples_inrename = ecs_mdata.sample
 samples_expected = functional_mdata.sample
-@assert (all(samples_expected .∈ Ref(samples_inrename)) & all(samples_inrename .∈ Ref(samples_expected)))
-setdiff(samples_expected, samples_inrename)
+# @assert (all(samples_expected .∈ Ref(samples_inrename)) & all(samples_inrename .∈ Ref(samples_expected)))
+# setdiff(samples_expected, samples_inrename)
+# setdiff(samples_inrename, samples_expected)
 
 t1_samples = subset(ecs_mdata, :visit => x -> x .== "3mo")
 t2_samples = subset(ecs_mdata, :visit => x -> x .== "6mo")
 t3_samples = subset(ecs_mdata, :visit => x -> x .== "12mo")
-
 longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeunique=true)
-subset!(longitudinal_samples, :subject_id => x -> x .!= "khula-191-63214792")
 ```
 
 ## Finding the important predictors
@@ -104,19 +100,22 @@ important_bugs = importances_table[1:30, :variable]
 ```
 
 ## Selecting samples and functions for functional analysis
+
+Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
 ```julia
 filtered_profiles = filter(feat-> hastaxon(feat), functional_profiles)
 filtered_functions = union( name.(features(filtered_profiles)) )
 selected_functions_widedfs = [ comm2wide(filter(feat-> name((feat)) == this_function, filtered_profiles)) for this_function in filtered_functions ]
 
-# scores = Vector{Int64}(undef, length(filtered_functions))
 scores = Vector{Float64}(undef, length(filtered_functions))
-diffs = Vector{Float64}(undef, length(filtered_functions))
+diff_MEANs = Vector{Float64}(undef, length(filtered_functions))
+foldchanges = Vector{Float64}(undef, length(filtered_functions))
+diff_STDs = Vector{Float64}(undef, length(filtered_functions))
+diff_CIs = Vector{Float64}(undef, length(filtered_functions))
 
 for i in eachindex(selected_functions_widedfs)
-    
     selected_functions_widedfs[i].sum = map(x -> sum(x)*1e6, eachrow(Matrix(selected_functions_widedfs[i][:, 5:end])))
-    
+
     select!(selected_functions_widedfs[i], [:sample, :subject_id, :ageMonths, :visit, :sum])
     youngsamps = subset(selected_functions_widedfs[i], :visit => x -> x .== "3mo")
     # youngsamps = subset(selected_functions_widedfs[i], :ageMonths => x -> x .<= 4.0)
@@ -128,17 +127,39 @@ for i in eachindex(selected_functions_widedfs)
     select!(oldsamps, [:subject_id, :sum])
     @show allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
-    scores[i] = sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum_1 .> allsamps.sum)) - sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum .> allsamps.sum_1)) # This is really good!
+    scores[i] = round( (sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .* sign.(allsamps.sum_1 .- allsamps.sum)) / nrow(allsamps)); digits = 2)
+    # scores[i] = sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum_1 .> allsamps.sum)) - sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .& (allsamps.sum .> allsamps.sum_1)) # This is really good!
     # scores[i] = sum( ((allsamps.sum_1 .> 100) .| (allsamps.sum .> 100) ) .& (allsamps.sum_1 .> allsamps.sum)) - sum( ((allsamps.sum_1 .> 100) .| (allsamps.sum .> 100) ) .& (allsamps.sum .> allsamps.sum_1)) # This is really good!
-    diffs[i] = mean(allsamps.sum_1) - mean(allsamps.sum)
+    diff_MEANs[i] = mean(allsamps.sum_1) - mean(allsamps.sum)
+    foldchanges[i] = mean(log10.(allsamps.sum_1 .+ 1e-3)) - mean(log10.(allsamps.sum .+ 1e-3))
+    diff_STDs[i] = Statistics.std((allsamps.sum_1) .- mean(allsamps.sum))
+    diff_CIs[i] = ( 1.96 * Statistics.std((allsamps.sum_1) .- mean(allsamps.sum)) ) / sqrt(length(allsamps.sum_1))
 end
+```
 
-func_idxes = extremes(sortperm(scores), 20)
-selected_functions = sort(filtered_functions[func_idxes])[1:end-1]
+We aimed to plot the 1.5% extremal ECs, or:
+```julia
+n_to_collect = ceil(Int64, (length(filtered_functions)*0.015)/2.0)
+func_idxes = extremes(sortperm(scores), n_to_collect)
+@show selected_functions = sort(filtered_functions[func_idxes])[1:end-1]
 
-#####
-# Computing each taxa's contribution to each genefunction on each age range
-#####
+func_stats_df = DataFrame(
+    :function_name => filtered_functions,
+    :formatted_diff => [ "$(round(i; digits = 2)) ± $(round(j; digits = 2))" for (i,j) in zip(diff_MEANs,diff_CIs) ],
+    :difference => diff_MEANs,
+    :fold_change => foldchanges,
+    :score => scores,
+    :difference_CI => diff_CIs,
+    :difference_SD => diff_STDs,    
+)
+sort!(func_stats_df, :score)
+sort!(func_stats_df, :difference)
+sort!(func_stats_df, :fold_change)
+
+```
+
+## Computing each taxa's contribution to each genefunction on each age range
+```julia
 youngsamplemat = zeros(length(important_bugs), length(selected_functions))
 oldsamplemat = zeros(length(important_bugs), length(selected_functions))
 
@@ -149,20 +170,23 @@ for i in eachindex(important_bugs)
             this_filtered_profiles = filter(feat-> (hastaxon(feat) && (name(feat) == selected_functions[j]) && (name(taxon(feat)) == important_bugs[i])), functional_profiles)
 
             this_widetable = comm2wide(this_filtered_profiles)
-            this_widetable.sum = map(x -> sum(x)*1e7, eachrow(Matrix(this_widetable[:, 5:end])))
+            this_widetable.sum = map(x -> sum(x)*1e6, eachrow(Matrix(this_widetable[:, 5:end])))
             select!(this_widetable, [:sample, :subject_id, :ageMonths, :visit, :sum])
 
 
-            youngsamps = subset(this_widetable, :ageMonths => x -> x .<= 4.0)
+            youngsamps = subset(this_widetable, :visit => x -> x .== "3mo")
+            # youngsamps = subset(this_widetable, :ageMonths => x -> x .<= 4.0)
             select!(youngsamps, [:subject_id, :sum])
             
-            oldsamps = subset(this_widetable, :ageMonths => x -> x .>= 9.0)
+            oldsamps = subset(this_widetable, :visit => x -> x .== "12mo")
+            # oldsamps = subset(this_widetable, :ageMonths => x -> x .>= 9.0)
             select!(oldsamps, [:subject_id, :sum])
         
             allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
-            youngsamplemat[i,j] = maximum([log10(mean(allsamps.sum .+ 1e-3)), 0.0])
-            oldsamplemat[i,j] = maximum([log10(mean(allsamps.sum_1 .+ 1e-3)), 0.0])
+            # Fold change will be mean(log2(old)) - mean(log2(young))
+            youngsamplemat[i,j] = mean(log2.(allsamps.sum .+ 1e-3))
+            oldsamplemat[i,j] = mean(log2.(allsamps.sum_1 .+ 1e-3))
 
         catch
             continue
@@ -175,7 +199,9 @@ end
 
 ## Perform the actual HCA and store the order
 dist_taxa = pairwise(Euclidean(), youngsamplemat + oldsamplemat; dims=1)
+# dist_taxa = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=1)
 dist_functions = pairwise(Euclidean(), youngsamplemat + oldsamplemat; dims=2)
+# dist_functions = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=2)
 hcl_taxa = hclust(dist_taxa; linkage=:single, branchorder=:optimal)
 hcl_functions = hclust(dist_functions; linkage=:single, branchorder=:optimal)
 hclust_taxa_order = hcl_taxa.order
@@ -184,12 +210,26 @@ hclust_function_order = hcl_functions.order
 ordered_youngsamplemat = youngsamplemat[hclust_taxa_order, hclust_function_order]
 ordered_oldsamplemat = oldsamplemat[hclust_taxa_order, hclust_function_order]
 
+ordered_diffmat = ordered_oldsamplemat - ordered_youngsamplemat
+
+# a = Vector{Tuple{String, String, Float64}}()
+a = Vector{NamedTuple{(:species, :ec, :diff), Tuple{String, String, Float64}}}()
+
+for i in eachindex(hclust_taxa_order)
+    for j in eachindex(hclust_function_order)
+        push!(a, (species = important_bugs[hclust_taxa_order][i], ec =  selected_functions[hclust_function_order][j], diff = ordered_diffmat[i,j] ))
+    end
+end
+
+a = DataFrame(a)
+sort!(a, :diff)
+
 ordered_functions = selected_functions[hclust_function_order]
 ordered_taxa = important_bugs[hclust_taxa_order]
 
 ## For paper results paragraph
 
-absolute_differences_mat = ordered_oldsamplemat .- ordered_youngsamplemat
+absolute_differences_mat = abs.(ordered_oldsamplemat .- ordered_youngsamplemat)
 
 fourbugclust = absolute_differences_mat[27:30, 1:20]
 @show(mean(fourbugclust[fourbugclust .!= 0.0]))
@@ -237,7 +277,8 @@ ec_colors = Dict(
     '6' => "midnightblue"
 )
 
-subset_to_plot = vcat(collect(1:8), collect(19:30))
+# subset_to_plot = vcat(collect(1:8), collect(19:30))
+subset_to_plot = collect(1:30)
 ```
 
 # Creating Master Figure 4
