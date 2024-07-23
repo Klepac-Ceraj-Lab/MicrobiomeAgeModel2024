@@ -71,11 +71,12 @@ println("Of the $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0)) fea
 println("After prevalence filtering, there are $(sum(map(sum, eachrow(filter_prevalence(combined_inputs, prevalence_threshold)[:, 11:end-2])) .== 0.0 ) ) samples that end up with no abundance on the remaining taxa")
 
 filtered_inputs = filter_prevalence(combined_inputs, prevalence_threshold)
+filtered_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(filtered_inputs[:, 11:ncol(filtered_inputs)-2])))
 
-subset!(filtered_inputs, :richness => x -> x .>= 3) # Minimum smaple richness should be more than 1% of the final number of predictors (~150, posthoc), rounded to the ceiling (so, 2). Hence, richness has to be >= 3.
+subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness should be at least 1.
 select!(filtered_inputs, Not(:richness))
 
-CSV.write("manuscript/final_manuscript_inputs2.csv", filtered_inputs)
+CSV.write("manuscript/final_manuscript_inputs.csv", filtered_inputs)
 ```
 
 ##  RF Model training
