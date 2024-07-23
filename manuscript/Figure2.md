@@ -270,6 +270,8 @@ end
 @show bugs[cidx.I[1]], cohorts[cidx.I[2]]
 ```
 
+## Plotting Panel B
+```julia
 for bug in ["Faecalibacterium_prausnitzii", "Anaerostipes_hadrus", "Flavonifractor_plautii", "Eubacterium_rectale", "Bifidobacterium_longum", "Bifidobacterium_breve", "Ruminococcus_gnavus"]
     println("$(bug): $(cor(filtered_inputs[:, bug], filtered_inputs.ageMonths))")
 end
@@ -280,22 +282,30 @@ sort!(importances_table, :impsign; rev = true)
 axB = Axis(
     B_Subfig[1, 1];
     xlabel = "sign(R) x proportional importance",
-    yticks = (reverse(collect(1:31)), [ replace(el, "_" => " ") for el in importances_table.variable[1:31] ]),
-    ylabel = "Predictor",
+    yticks = (reverse(collect(1:nfeat_toplot)), [ replace(el, "_" => " ") for el in importances_table.variable[1:nfeat_toplot] ]),
+    # ylabel = "Predictor",
     yticklabelsize=14,
     yticklabelfont="TeX Gyre Heros Makie Italic"
 )
 
 tightlimits!(axB, Top())
 tightlimits!(axB, Bottom())
+
 hidedecorations!(axB, label = false, ticklabels = false, ticks = false, minorgrid = false, minorticks = false)
 
 barplot!(
     axB,
-    reverse(collect(1:31)),
-    importances_table.impsign[1:31],
-    color = [ ( (el > 0) ? "blue" : "red" ) for el in importances_table.impsign[1:31] ],
+    reverse(collect(1:nfeat_toplot)),
+    importances_table.impsign[1:nfeat_toplot],
+    color = [ ( (el > 0) ? "blue" : "red" ) for el in importances_table.impsign[1:nfeat_toplot] ],
     direction=:x
+)
+scatter!(
+    axB,
+    [ ( (ff ∈ highlighted_features) ? (importances_table.impsign[ii] + 0.002*sign(importances_table.impsign[ii]) ) : 0.0 ) for (ii,ff) in enumerate(importances_table.variable) ],
+    reverse(collect(1:nfeat_toplot)),
+    marker = [ (ff ∈ highlighted_features) ? :star4 : ' ' for ff in importances_table.variable ],
+    color = :gray10
 )
 vlines!(axB, [ 0.0 ]; color = :black)
 
@@ -306,10 +316,14 @@ axislegend(axB,     [
         MarkerElement(marker = :star4, color = :gray10, markersize = 16)
     ],
     [
-        "Positively correlated\nwith age",
-        "Negatively correlated\nwith age",
+        rich("R",subscript("(age)"), "> 0"),
+        rich("R",subscript("(age)"), "< 0"),
         "",
-        "Features highlighted\nin main text",
+        "Features \nin main text"
+        # "Positively correlated\nwith age",
+        # "Negatively correlated\nwith age",
+        # "",
+        # "Features highlighted\nin main text",
     ],
     orientation = :vertical,
     labelsize = 14,
