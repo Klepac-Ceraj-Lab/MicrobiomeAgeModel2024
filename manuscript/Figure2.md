@@ -255,6 +255,7 @@ highlighted_features = [
 ```
 
 ## bugs present in every cohort?
+```julia
 cohorts = unique(filtered_inputs.datasource)
 bugs = onlyspecies_importances.variable
 check_prevalences_mat = Matrix{Float64}(undef, length(bugs), length(cohorts))
@@ -265,7 +266,9 @@ for (j, cohort) in enumerate(cohorts)
     end
 end
 
-@show findall(check_prevalences_mat .== 0.0)
+@show cidx = findall(check_prevalences_mat .== 0.0)[1]
+@show bugs[cidx.I[1]], cohorts[cidx.I[2]]
+```
 
 for bug in ["Faecalibacterium_prausnitzii", "Anaerostipes_hadrus", "Flavonifractor_plautii", "Eubacterium_rectale", "Bifidobacterium_longum", "Bifidobacterium_breve", "Ruminococcus_gnavus"]
     println("$(bug): $(cor(filtered_inputs[:, bug], filtered_inputs.ageMonths))")
