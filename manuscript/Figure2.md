@@ -194,7 +194,11 @@ Legend(
 
 ## Figure 2, Panel B - Importance plots
 ```julia
-importances_table = hpimportances(regression_Age_FullCV, hp_idx)[1:31,:]
+importances_table = hpimportances(regression_Age_FullCV, hp_idx)
+importances_table.cumsum = cumsum(importances_table.weightedImportance)
+nfeat_toplot = findfirst(importances_table.cumsum .> 0.7)
+importances_table = importances_table[1:nfeat_toplot,:]
+
 importances_table.correl = [ cor(filtered_inputs[:, ccol], filtered_inputs.ageMonths) for ccol in importances_table.variable ]
 importances_table.impsign = importances_table.weightedImportance .* sign.(importances_table.correl)
 
