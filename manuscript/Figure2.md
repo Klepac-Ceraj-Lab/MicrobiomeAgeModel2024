@@ -51,7 +51,8 @@ presence_absence = false # This argument will control whether the model will be 
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-include("notebooks/allcohorts_data_loading_nofeed.jl")
+include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
+combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
 ```
 
 ### Filtering and preparing the data
