@@ -441,13 +441,13 @@ end
 
 ## Add labels
 ```julia
-Label(A_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0, 25, 0, 0), halign = :right, alignmode = Inside())
-Label(B_Subfig[1, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, 220, 0, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0, 25, 0, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 40, 0, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 3, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0, 40, 0, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 4, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0, 40, 0, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 5, TopLeft()], "G", fontsize = 22, font = :bold, padding = (0, 40, 0, 0), halign = :right, alignmode = Inside())
+Label(A_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (-5, 30, -20, 0), halign = :right, alignmode = Inside())
+Label(B_Subfig[1, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, 220, -20, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (-5, 30, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 3, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 4, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 5, TopLeft()], "G", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
