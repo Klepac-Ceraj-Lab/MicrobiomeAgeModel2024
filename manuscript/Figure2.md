@@ -153,11 +153,12 @@ ablines!(axA, 0, 1; linestyle = :dash, linewidth=2, color = :gray )
         axA,
         [
             "RMSE = " * string(round(_[:, :Val_RMSE_mean][1]; digits = 2)) * " mo",
-            "r = " * string(round(_[:, :Val_Cor_mean][1]; digits = 2))
+            "R = " * string(round(_[:, :Val_Cor_mean][1]; digits = 2))
         ],
-        [Point(17.8, 2.6), Point(17.8, 2.1)];
+        [Point(15.7, 2.6), Point(15.7, 2.1)];
         fontsize = 14,
-        align = (:right, :bottom)
+        # align = (:right, :bottom)
+        align = (:center, :bottom)
     )
 end
 
