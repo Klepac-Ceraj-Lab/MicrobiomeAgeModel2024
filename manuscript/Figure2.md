@@ -211,6 +211,48 @@ println("Number of species positively correlated with age: $(sum( onlyspecies_im
 println("Number of species negatively correlated with age: $(sum( onlyspecies_importances.correl .< 0.0 )) or $(round(sum( onlyspecies_importances.correl .< 0.0 )/nrow(onlyspecies_importances); digits = 3))")
 println("Mean species positive correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ]))")
 println("Mean species negative correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ]))")
+```
+
+## Features highlighted in main text
+```julia
+highlighted_features = [
+    "Faecalibacterium_prausnitzii",
+    "Anaerostipes_hadrus",
+    "Shannon_index",
+    "Blautia_wexlerae",
+    # "Roseburia_inulinivorans",
+    # "Flavonifractor_plautii",
+    # "Eubacterium_hallii",
+    # "Ruminococcus_bromii",
+    # "Clostridium_innocuum",
+    "Dorea_longicatena",
+    # "Fusicatenibacter_saccharivorans",
+    # "Intestinibacter_bartlettii",
+    # "Eubacterium_eligens",
+    # "Eubacterium_rectale",
+    # "Clostridium_symbiosum",
+    # "Blautia_obeum",
+    # "Agathobaculum_butyriciproducens",
+    # "Roseburia_faecis",
+    "Dorea_formicigenerans",
+    # "Streptococcus_thermophilus",
+    # "Firmicutes_bacterium_CAG_41",
+    "Roseburia_intestinalis",
+    # "Clostridium_sp_AM22_11AC",
+    # "Eggerthella_lenta",
+    "Prevotella_copri",
+    # "Hungatella_hathewayi",
+    # "Bacteroides_fragilis",
+    # "Clostridium_neonatale",
+    # "Haemophilus_parainfluenzae",
+    "Bifidobacterium_longum",
+    "Bifidobacterium_breve",
+    # "Enterococcus_faecalis",
+    "Escherichia_coli",
+    # "Erysipelatoclostridium_ramosum",
+    "Ruminococcus_gnavus"
+]
+```
 
 ## bugs present in every cohort?
 cohorts = unique(filtered_inputs.datasource)
