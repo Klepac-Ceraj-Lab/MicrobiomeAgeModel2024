@@ -202,11 +202,15 @@ importances_table = importances_table[1:nfeat_toplot,:]
 importances_table.correl = [ cor(filtered_inputs[:, ccol], filtered_inputs.ageMonths) for ccol in importances_table.variable ]
 importances_table.impsign = importances_table.weightedImportance .* sign.(importances_table.correl)
 
-onlyspecies_importances = subset(importances_table, :variable => x -> x .!= "shannon_index")
+onlyspecies_importances = subset(importances_table, :variable => x -> x .!= "Shannon_index")
 
-println("Number of species positively correlated with age: $(sum( onlyspecies_importances.correl .> 0.0 ))")
-println("Mean positive correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ])) +- $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ]))")
-println("Mean negative correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ])) +- $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ]))")
+println("Number of features repsponsible for 70% Cum. Importance: $(nrow( importances_table ))")
+println("Number of features positively correlated with age: $(sum( importances_table.correl .> 0.0 )) or $(round(sum( importances_table.correl .> 0.0 )/nrow(importances_table); digits = 3))")
+println("Number of features negatively correlated with age: $(sum( importances_table.correl .< 0.0 )) or $(round(sum( importances_table.correl .< 0.0 )/nrow(importances_table); digits = 3))")
+println("Number of species positively correlated with age: $(sum( onlyspecies_importances.correl .> 0.0 )) or $(round(sum( onlyspecies_importances.correl .> 0.0 )/nrow(onlyspecies_importances); digits = 3))")
+println("Number of species negatively correlated with age: $(sum( onlyspecies_importances.correl .< 0.0 )) or $(round(sum( onlyspecies_importances.correl .< 0.0 )/nrow(onlyspecies_importances); digits = 3))")
+println("Mean species positive correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ]))")
+println("Mean species negative correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ]))")
 
 ## bugs present in every cohort?
 cohorts = unique(filtered_inputs.datasource)
