@@ -338,7 +338,7 @@ axislegend(axB,     [
 List of features selected to plot according to Figure 2, Pabel B:
 ```julia
 features_to_plot = [
-    "shannon_index",
+    "Shannon_index",
     "Faecalibacterium_prausnitzii",
     "Dorea_formicigenerans",
     "Bifidobacterium_breve",
@@ -357,9 +357,8 @@ for (cc, ss) in enumerate(features_to_plot)
         ax = Axis(
             CDEFG_Subfig[1:2, cc];
             xlabel = "Age in Months",
-            ylabel = "Abundance",
+            ylabel = replace(ss, "_" => " "),
             xticks = 2:4:18,
-            title = replace(ss, "_" => " "),
             yticklabelsize=14,
             titlefont="TeX Gyre Heros Makie Italic"
         )
@@ -368,7 +367,7 @@ for (cc, ss) in enumerate(features_to_plot)
         ylims!(ax, (-0.01, 4.01))
         tightlimits!(axB, Bottom())
         hidexdecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
-        hideydecorations!(ax, label = true, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+        hideydecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 
         scatter!(
             ax,
@@ -405,9 +404,10 @@ for (cc, ss) in enumerate(features_to_plot)
             CDEFG_Subfig[2, cc];
             xlabel = "Age in Months",
             ylabel = "Prevalence",
-            yticks = (0.0:0.25:1.0),
+            yticks = (0.0:0.25:1.0, ["0", "", "50%", "", "100%"]),
             xticks = 2:4:18,
-            yticklabelsize=14
+            yticklabelsize=14,
+            # yticklabelrotation=pi/6
         )
 
         xlims!(axbt, (1.99, 18.01))
@@ -430,6 +430,11 @@ for (cc, ss) in enumerate(features_to_plot)
             prevalences,
             color = :gray20
         )
+
+        yspace = maximum(tight_yticklabel_spacing!, [ax, axbt])
+        ax.yticklabelspace = yspace
+        axbt.yticklabelspace = yspace
+
     end
 end
 ```
