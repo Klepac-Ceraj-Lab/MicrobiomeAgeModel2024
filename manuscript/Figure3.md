@@ -231,8 +231,8 @@ rejoined_bugnames = replace.(important_bugs[prevalence_order], "_" => " ")
 axA = Axis(
     figure3_master[1,1],
     xlabel = "Age bin (months)",
-    title = "Samples from Baltic\nEST+FIN+RUS+SWE/DIABIMMUNE",
-    xticks = (eachindex(bins), string.(bins)),
+    title = "Baltic samples",
+    xticks = (eachindex(bins), ["2", "", "4", "", "6", "", "8", "", "10", "", "12", "", "14"]),
     yticks = (eachindex(important_bugs), rejoined_bugnames),
     yticklabelfont="TeX Gyre Heros Makie Italic",
     yticklabelsize=24,
@@ -250,8 +250,8 @@ axB = Axis(
     figure3_master[1,2],
     xlabel = "Age bin (months)",
     ylabel = "species important for the age model",
-    title = "Samples from North America\nUSA/ECHO+CMD",
-    xticks = (eachindex(bins), string.(bins)),
+    title = "North American samples",
+    xticks = (eachindex(bins), ["2", "", "4", "", "6", "", "8", "", "10", "", "12", "", "14"]),
     yticks = (eachindex(important_bugs), rejoined_bugnames),
     yticklabelfont="TeX Gyre Heros Makie Italic",
     yticklabelsize=24,
@@ -270,8 +270,8 @@ axC = Axis(
     figure3_master[1,3],
     xlabel = "Age bin (months)",
     ylabel = "species important for the age model",
-    title = "Samples from South Africa\nZAF/KHULA ",
-    xticks = (eachindex(bins), string.(bins)),
+    title = "South African samples",
+    xticks = (eachindex(bins), ["2", "", "4", "", "6", "", "8", "", "10", "", "12", "", "14"]),
     yticks = (eachindex(important_bugs), replace.(important_bugs[prevalence_order], "_" => " ")),
     yticklabelfont="TeX Gyre Heros Makie Italic",
     yticklabelsize=24,
@@ -286,7 +286,7 @@ hideydecorations!(axC)
 # hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = true))
 hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = false))
 
-Colorbar(figure3_master[1,4], hmA, label = "Average species prevalence on each age range on the 0-1 scale", labelsize = 24)
+Colorbar(figure3_master[1,4], hmA, label = "Prevalence", labelsize = 24)
 ```
 
 ## Add labels
@@ -307,5 +307,7 @@ colsize!(figure3_master.layout, 3, Relative(0.33))
 
 ```julia
 save(joinpath(outdir, "figures", "Figure3.png"), figure3_master)
+save(joinpath(outdir, "figures", "Figure3.eps"), figure3_master)
+save(joinpath(outdir, "figures", "Figure3.svg"), figure3_master)
 figure3_master
 ```

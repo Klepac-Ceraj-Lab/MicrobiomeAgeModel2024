@@ -1,47 +1,46 @@
-# Figure 1 - General Statitics, Community analysis
+# Figure 1 - General Statistics, Community analysis
 
 ## Pre-configuration
 
 ### Loading Packages 
 ```julia
-# using Chain
-# using XLSX
-# using DataFrames
-# using MultivariateStats
-# using Microbiome
-# using Distances
-# using Diversity
-# using Random
-# using JLD2
-# using Statistics
-# using CairoMakie
-# using Leap
-# using CategoricalArrays
-# using GLM
-# using StatsBase
-# using StableRNGs
+using Chain
+using XLSX
+using DataFrames
+using MultivariateStats
+using Microbiome
+using Distances
+using Diversity
+using Random
+using JLD2
+using Statistics
+using CairoMakie
+using Leap
+using CategoricalArrays
+using GLM
+using StatsBase
+using StableRNGs
 ```
 
 ### Configurable parameters
 ```julia
-# master_colors = Dict(
-#     "ECHO" => "purple",
-#     "ECHO-RESONANCE" => "purple",
-#     "1kDLEAP-BRAINRISE" => "blue",
-#     "1kDLEAP-CORK" => "orange",
-#     "1kDLEAP-COMBINE" => "orange",
-#     "1kDLEAP-KHULA" => "red",
-#     "1kDLEAP-M4EFAD" => "darkgreen",
-#     "DIABIMMUNE" => "lightblue",
-#     "CMD" => "lightblue"
-# )
+master_colors = Dict(
+    "ECHO-RESONANCE" => "purple",
+    "1kDLEAP-GERMINA" => "blue",
+    "1kDLEAP-COMBINE" => "orange",
+    "1kDLEAP-KHULA" => "red",
+    "1kDLEAP-M4EFAD" => "darkgreen",
+    "CMD-OTHER" => "lightblue",
+    "CMD-DIABIMMUNE" => "lightblue",
+    "CMD" => "lightblue"
+)
 
-# experiment_name = "2024AgeModelManuscript"
-# outdir = joinpath(pwd(), "results", experiment_name)
-# figdir = joinpath(outdir, "figures")
-# deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-# isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-# presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
+experiment_name = "2024AgeModelManuscript"
+outdir = joinpath(pwd(), "results", experiment_name)
+figdir = joinpath(outdir, "figures")
+deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
+isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
+presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
 ```
 
 ## Loading data
@@ -49,13 +48,14 @@
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-# include("notebooks/allcohorts_data_loading_nofeed.jl")
+include("notebooks/allcohorts_data_loading_nofeed.jl")
 ```
 
 ##  Summary Tables
 
 ### Number of unique samples and subjects before prevalence filtering
 ```julia
+replace!(combined_inputs.datasource, "DIABIMMUNE" => "CMD")
 datasource_summary_table = combine(
     groupby(combined_inputs, :datasource),
     :subject_id => (x -> length(unique(x))) => :Unique_subjects,
@@ -66,6 +66,9 @@ datasource_summary_table = combine(
     )
 datasource_summary_table.color = [ master_colors[el] for el in datasource_summary_table.datasource ]
 @show sort!(datasource_summary_table, :Unique_subjects)
+
+subset!(combined_inputs, :richness => x -> x .>= 3) # Minimum sample richness should be more than 1% of the final number of predictors (~150, posthoc), rounded to the ceiling (so, 2). Hence, richness has to be >= 3.
+select!(combined_inputs, Not(:richness))
 ```
 
 # Creating Master Figure 1
@@ -80,9 +83,39 @@ DE_Subfig  = GridLayout(figure1_master[2,1:2], alignmode=Outside())
 ## World map of data sources
 ```julia
 fig1_panelA = rotr90(load("manuscript/assets/Figure1_PanelA_WorldMap.PNG"))
-axA = Axis(AB_Subfig[1,1])
+axA = Axis(AB_Subfig[1,1], alignmode = Inside())
 hidedecorations!(axA); hidespines!(axA)
 image!(axA, fig1_panelA)
+```
+
+## Figure 1, Legend between A and B
+```julia
+Legend(
+    AB_Subfig[2, 1],
+    [
+        MarkerElement(marker = :circle, color = :lightblue, markersize = 14),
+        MarkerElement(marker = :circle, color = :purple, markersize = 14),
+        MarkerElement(marker = :circle, color = :blue, markersize = 14),
+        # MarkerElement(marker = :circle, color = :darkgreen, markersize = 14),
+        MarkerElement(marker = :circle, color = :red, markersize = 14),
+        MarkerElement(marker = :circle, color = :orange, markersize = 14),
+        MarkerElement(marker = :circle, color = :darkgreen, markersize = 14)
+    ],
+    [
+        "CMD",
+        "ECHO-Resonance",
+        "1kDLEAP-Germina",
+        # "1kDLEAP-KhulaMW",
+        "1kDLEAP-Khula",
+        "1kDLEAP-Combine",
+        "1kDLEAP-M4EFaD"
+    ],
+    orientation = :vertical,
+    nbanks = 3,
+    labelsize = 14,
+    tellheight = true,
+    tellwidth = false
+)
 ```
 
 ## Figure 1, Panel B - Stacked histogram of ages
@@ -103,7 +136,7 @@ for row in eachrow(combined_inputs)
 end
 
 # Prepare the data for plotting
-categories = unique(combined_inputs.datasource)
+categories = [ "CMD", "ECHO", "1kDLEAP-KHULA", "1kDLEAP-COMBINE", "1kDLEAP-GERMINA", "1kDLEAP-M4EFAD" ] #equivalent to `unique(combined_inputs.datasource)`, but hardcoded in this order for aesthetic purposes
 bins = 1:nbins
 bar_heights = zeros(length(categories), nbins)
 
@@ -117,7 +150,13 @@ end
 cumulative_sums = cumsum(bar_heights, dims = 1)
 
 # Set up the figure and axis
-axB = Axis(AB_Subfig[3, 1], ylabel = "Unique samples", xlabel = "Age in Months", xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))))
+axB = Axis(
+    AB_Subfig[3, 1],
+    ylabel = "Number of samples",
+    xlabel = "Age in months",
+    xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))),
+    alignmode = Outside()
+)
 axB.rightspinevisible = false
 axB.topspinevisible = false
 hidedecorations!(axB, label = false, ticklabels = false, ticks = false, grid = true, minorgrid = true, minorticks = true)
@@ -139,8 +178,8 @@ end
 ## Figure 1, Panel B - Pie chart
 ```julia
 fig = Figure(; size = (800, 500))
-ax1 = Axis(fig[1,1], title = "Unique Participants by source", autolimitaspect = 1)
-ax2 = Axis(fig[1,2], title = "Total Samples by source", autolimitaspect = 1)
+ax1 = Axis(fig[1,1], title = "Participants", autolimitaspect = 1, titlesize = 24)
+ax2 = Axis(fig[1,2], title = "Samples", autolimitaspect = 1, titlesize = 24)
 xlims!(ax1, (-5.5, +5.5)) 
 ylims!(ax1, (-5.5, +5.5)) 
 xlims!(ax2, (-5.5, +5.5)) 
@@ -149,7 +188,7 @@ hidedecorations!(ax1); hidespines!(ax1)
 hidedecorations!(ax2); hidespines!(ax2)
 
 pie1 = pie!(ax1,
-   datasource_summary_table.Unique_subjects, color =datasource_summary_table.color,
+   datasource_summary_table.Unique_subjects, color = datasource_summary_table.color,
     radius = 4, inner_radius = 1.5, strokecolor = :white, strokewidth = 5
     )
 
@@ -161,7 +200,7 @@ subject_positions = (subject_angles[1:end-1] .+ subject_angles[2:end]) / 2
 for (i, pos) in enumerate(subject_positions)
     x = 4.8 * cos(pos)
     y = 4.8 * sin(pos)
-    text!(ax1, x, y, text = string(datasource_summary_table.Unique_subjects[i]), align = (:center, :center), fontsize=30, color=master_colors[datasource_summary_table.datasource[i]])
+    text!(ax1, x, y, text = string(datasource_summary_table.Unique_subjects[i]), align = (:center, :center), fontsize=32, color=master_colors[datasource_summary_table.datasource[i]])
 end
 
 pie2 = pie!(ax2,
@@ -176,7 +215,7 @@ subject_positions = (subject_angles[1:end-1] .+ subject_angles[2:end]) / 2
 for (i, pos) in enumerate(subject_positions)
     x = 4.8 * cos(pos)
     y = 4.8 * sin(pos)
-    text!(ax2, x, y, text = string(datasource_summary_table.Unique_samples[i]), align = (:center, :center), fontsize=30, color=master_colors[datasource_summary_table.datasource[i]])
+    text!(ax2, x, y, text = string(datasource_summary_table.Unique_samples[i]), align = (:center, :center), fontsize=32, color=master_colors[datasource_summary_table.datasource[i]])
 end
 
 Legend(
@@ -204,56 +243,56 @@ image!(axC, fig1_panelC)
 
 ## PERMANOVAS
 ```julia
-spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-1]), dims=1)
+spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-2]), dims=1)
 
-# lt4idx = combined_inputs.ageMonths .< 4.0
-# lt8idx = combined_inputs.ageMonths .< 8.0
-# commlabels = ["Taxa"]
-# mdlabels = [ "Age", "Country", "Data\nSource"]
+lt4idx = combined_inputs.ageMonths .< 4.0
+lt8idx = combined_inputs.ageMonths .< 8.0
+commlabels = ["Taxa"]
+mdlabels = [ "Age", "Country", "Data\nSource"]
 
-# pmn_all = permanovas(
-#     [ spedm ], 
-#     [
-#         combined_inputs.ageMonths,
-#         combined_inputs.site,
-#         combined_inputs.datasource,
-#     ]; commlabels, mdlabels
-# )
+pmn_all = permanovas(
+    [ spedm ], 
+    [
+        combined_inputs.ageMonths,
+        combined_inputs.site,
+        combined_inputs.datasource,
+    ]; commlabels, mdlabels
+)
 
-# pmn_lt4  = permanovas(
-#     [ spedm[lt4idx, lt4idx] ],
-#     [
-#         combined_inputs.ageMonths[lt4idx],
-#         combined_inputs.site[lt4idx],
-#         combined_inputs.datasource[lt4idx],
-#     ]; commlabels, mdlabels
-# )
+pmn_lt4  = permanovas(
+    [ spedm[lt4idx, lt4idx] ],
+    [
+        combined_inputs.ageMonths[lt4idx],
+        combined_inputs.site[lt4idx],
+        combined_inputs.datasource[lt4idx],
+    ]; commlabels, mdlabels
+)
 
-# pmn_lt8 = permanovas(
-#     [ spedm[lt8idx, lt8idx] ],
-#     [
-#         combined_inputs.ageMonths[lt8idx],
-#         combined_inputs.site[lt8idx],
-#         combined_inputs.datasource[lt8idx],
-#     ]; commlabels, mdlabels
-# )
+pmn_lt8 = permanovas(
+    [ spedm[lt8idx, lt8idx] ],
+    [
+        combined_inputs.ageMonths[lt8idx],
+        combined_inputs.site[lt8idx],
+        combined_inputs.datasource[lt8idx],
+    ]; commlabels, mdlabels
+)
 
-# pmn_all.label .= "all samples"
-# pmn_lt4.label .= "< 4mo"
-# pmn_lt8.label .= "< 8mo"
+pmn_all.label .= "all samples"
+pmn_lt4.label .= "< 4mo"
+pmn_lt8.label .= "< 8mo"
 
-# ## 2.2 Combined
-# fig = Figure(;size = (400,300))
-# ax = Axis(
-#     fig[1, 1];
-#     xticklabelsize = 16,
-#     yticklabelsize = 16,
-#     title = "PERMANOVAs",
-# )
+## 2.2 Combined
+fig = Figure(;size = (400,300))
+ax = Axis(
+    fig[1, 1];
+    xticklabelsize = 16,
+    yticklabelsize = 16,
+    title = "PERMANOVAs",
+)
 
-# plot_permanovas!(ax, vcat(pmn_all[[3,2,1],:], pmn_lt4[[3,2,1],:], pmn_lt8[[3,2,1],:]))
+plot_permanovas!(ax, vcat(pmn_all[[3,2,1],:], pmn_lt4[[3,2,1],:], pmn_lt8[[3,2,1],:]))
 
-# save(joinpath(outdir, "figures", "FigureSX_PERMANOVAs.png"), fig)
+save(joinpath(outdir, "figures", "FigureSX_PERMANOVAs.png"), fig)
 ```
 
 ## NMDS (Principal Coordinate Analysis)
@@ -263,11 +302,11 @@ spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-1]), d
 using MultivariateStats
 
 if presence_absence
-    MDS_results = fit(PCA, spedm; maxoutdim = 20)
+    MDS_results = StatsBase.fit(PCA, spedm; maxoutdim = 20)
     MDS_columns = DataFrame(:MDS1 => MDS_results.proj[:,1], :MDS2 => MDS_results.proj[:,2], :MDS3 => MDS_results.proj[:,3], :MDS4 => MDS_results.proj[:,4], :MDS5 => MDS_results.proj[:,5])
     MDS_variances = MDS_results.prinvars ./ sum(MDS_results.prinvars)
 else
-    MDS_results = fit(MDS, spedm; maxoutdim = 20, distances=true)
+    MDS_results = StatsBase.fit(MDS, spedm; maxoutdim = 20, distances=true)
     MDS_columns = DataFrame(:MDS1 => MDS_results.U[:,1], :MDS2 => MDS_results.U[:,2], :MDS3 => MDS_results.U[:,3], :MDS4 => MDS_results.U[:,4], :MDS5 => MDS_results.U[:,5])
     MDS_variances = MDS_results.λ ./ sum(MDS_results.λ)
 end
@@ -281,9 +320,11 @@ axD = Axis(
     DE_Subfig[1,1],
     xlabel = "MDS1 ("*string(round(100*MDS_variances[1]; digits = 2))*"%)",
     ylabel = "MDS2 ("*string(round(100*MDS_variances[2]; digits = 2))*"%)",
-    title = "By data source",
-    aspect = AxisAspect(1.2)
+    # title = "By data source",
+    aspect = AxisAspect(1.2),
+    alignmode = Outside()
 )
+hidedecorations!(axD, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 scD = scatter!(
     axD,
     MDS_columns[:,1],
@@ -303,9 +344,11 @@ axE = Axis(
     DE_Subfig[1,2],
     xlabel = "MDS1 ("*string(round(100*MDS_variances[1]; digits = 2))*"%)",
     ylabel = "MDS2 ("*string(round(100*MDS_variances[2]; digits = 2))*"%)",
-    title = "By age in months",
-    aspect = AxisAspect(1.2)
+    # title = "By age in months",
+    aspect = AxisAspect(1.2),
+    alignmode = Outside()
 )
+hidedecorations!(axE, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
 scE = scatter!(
     axE,
     MDS_columns[:,1],
@@ -314,7 +357,7 @@ scE = scatter!(
     colormap = :viridis
 )
 
-Colorbar(DE_Subfig[1, 3], scE, tellheight = true)
+Colorbar(DE_Subfig[1, 3], scE, tellheight = false, alignmode = Inside())
 
 # save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), fig)
 # save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), fig)
@@ -323,26 +366,26 @@ Colorbar(DE_Subfig[1, 3], scE, tellheight = true)
 
 ## Add labels
 ```julia
-Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
 ```julia
 
-colgap!(figure1_master.layout, 1)
-rowgap!(figure1_master.layout, 1)
-colgap!(AB_Subfig, 1)
-rowgap!(AB_Subfig, 1)
-colgap!(C_Subfig, 1)
-rowgap!(C_Subfig, 1)
-colgap!(DE_Subfig, 1)
-rowgap!(DE_Subfig, 1)
+colgap!(figure1_master.layout, 0)
+rowgap!(figure1_master.layout, 0)
+colgap!(AB_Subfig, 0)
+rowgap!(AB_Subfig, 0)
+colgap!(C_Subfig, 0)
+rowgap!(C_Subfig, 0)
+colgap!(DE_Subfig, 10)
+rowgap!(DE_Subfig, 0)
 
-colsize!(figure1_master.layout, 2, Relative(0.4))
+colsize!(figure1_master.layout, 2, Relative(0.38))
 rowsize!(figure1_master.layout, 2, Relative(0.4))
 rowsize!(AB_Subfig, 1, Relative(0.50))
 rowsize!(AB_Subfig, 2, Relative(0.15))
