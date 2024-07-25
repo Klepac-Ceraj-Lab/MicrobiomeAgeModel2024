@@ -422,16 +422,15 @@ colb = Colorbar(DE_Subfig[1, 3], scE, tellheight = false, tellwidth = true, heig
 
 ## Add labels
 ```julia
-Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (-15, -15, -25, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (-15, -15, -15, 0), halign = :right, alignmode = Inside())
+Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0, 5, -25, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (-15, -15, -40, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22, font = :bold, padding = (-15, -20, -40, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
 ```julia
-
 colgap!(figure1_master.layout, 0)
 rowgap!(figure1_master.layout, 0)
 colgap!(AB_Subfig, 0)
