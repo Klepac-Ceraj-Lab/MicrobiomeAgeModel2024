@@ -213,8 +213,8 @@ end
 ## Figure 1, Panel B - Pie chart
 ```julia
 fig = Figure(; size = (800, 500))
-ax1 = Axis(fig[1,1], title = "Participants", autolimitaspect = 1, titlesize = 24)
-ax2 = Axis(fig[1,2], title = "Samples", autolimitaspect = 1, titlesize = 24)
+ax1 = Axis(fig[1,1], title = "Participants", autolimitaspect = 1, titlesize = 30)
+ax2 = Axis(fig[1,2], title = "Samples", autolimitaspect = 1, titlesize = 30)
 xlims!(ax1, (-5.5, +5.5)) 
 ylims!(ax1, (-5.5, +5.5)) 
 xlims!(ax2, (-5.5, +5.5)) 
