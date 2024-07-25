@@ -193,23 +193,20 @@ end
 ```
 
 ## Computing the optimal order for the functions and taxa via HCA
-
+```julia
 ## Perform the actual HCA and store the order
-dist_taxa = pairwise(Euclidean(), youngsamplemat + oldsamplemat; dims=1)
-# dist_taxa = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=1)
-dist_functions = pairwise(Euclidean(), youngsamplemat + oldsamplemat; dims=2)
-# dist_functions = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=2)
-hcl_taxa = hclust(dist_taxa; linkage=:single, branchorder=:optimal)
-hcl_functions = hclust(dist_functions; linkage=:single, branchorder=:optimal)
+dist_taxa = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=1)
+dist_functions = pairwise(Euclidean(), youngsamplemat - oldsamplemat; dims=2)
+hcl_taxa = hclust(dist_taxa; linkage=:ward, branchorder=:optimal)
+hcl_functions = hclust(dist_functions; linkage=:ward, branchorder=:optimal)
 hclust_taxa_order = hcl_taxa.order
 hclust_function_order = hcl_functions.order
 
-ordered_youngsamplemat = youngsamplemat[hclust_taxa_order, hclust_function_order]
-ordered_oldsamplemat = oldsamplemat[hclust_taxa_order, hclust_function_order]
+ordered_youngsamplemat = log10.(10e-3 .+ youngsamplemat[hclust_taxa_order, hclust_function_order])
+ordered_oldsamplemat = log10.(10e-3 .+ oldsamplemat[hclust_taxa_order, hclust_function_order])
 
 ordered_diffmat = ordered_oldsamplemat - ordered_youngsamplemat
 
-# a = Vector{Tuple{String, String, Float64}}()
 a = Vector{NamedTuple{(:species, :ec, :diff), Tuple{String, String, Float64}}}()
 
 for i in eachindex(hclust_taxa_order)
