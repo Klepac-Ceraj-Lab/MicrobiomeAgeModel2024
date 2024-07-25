@@ -349,6 +349,13 @@ end
 stress(MDS_results)
 ```
 
+### Printing numbers relevant to the manuscript
+```julia
+println("Variance explained by PC1: $(round(100*MDS_variances[1]; digits = 2))%")
+println("Correlation between PC1 and AgeMonths: $(cor(MDS_columns[:,1], combined_inputs.ageMonths))%")
+println("Correlation between PC2 and AgeMonths: $(cor(MDS_columns[:,2], combined_inputs.ageMonths))%")
+```
+
 ### Add NMDS to Panel D of Figure 1, Color by Site
 ```julia
 axD = Axis(
