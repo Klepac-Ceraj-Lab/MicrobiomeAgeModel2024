@@ -159,12 +159,11 @@ for i in eachindex(important_bugs)
     for j in eachindex(selected_functions)
 
         try            
-            this_filtered_profiles = filter(feat-> (hastaxon(feat) && (name(feat) == selected_functions[j]) && (name(taxon(feat)) == important_bugs[i])), functional_profiles)
+            this_filtered_profiles = filter(feat-> (hastaxon(feat) && (name(feat) == selected_functions[j]) && (name(taxon(feat)) == important_bugs[i])), filtered_functional_profiles)
 
             this_widetable = comm2wide(this_filtered_profiles)
             this_widetable.sum = map(x -> sum(x)*1e6, eachrow(Matrix(this_widetable[:, 5:end])))
             select!(this_widetable, [:sample, :subject_id, :ageMonths, :visit, :sum])
-
 
             youngsamps = subset(this_widetable, :visit => x -> x .== "3mo")
             # youngsamps = subset(this_widetable, :ageMonths => x -> x .<= 4.0)
@@ -177,15 +176,21 @@ for i in eachindex(important_bugs)
             allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
             # Fold change will be mean(log2(old)) - mean(log2(young))
-            youngsamplemat[i,j] = mean(log2.(allsamps.sum .+ 1e-3))
-            oldsamplemat[i,j] = mean(log2.(allsamps.sum_1 .+ 1e-3))
-
+            # youngsamplemat[i,j] = mean(log10.(allsamps.sum .+ 1e-3))
+            # oldsamplemat[i,j] = mean(log10.(allsamps.sum_1 .+ 1e-3))
+            # youngsamplemat[i,j] = log10(mean(allsamps.sum) + 1e-3)
+            # oldsamplemat[i,j] = log10(mean(allsamps.sum_1) + 1e-3)
+            youngsamplemat[i,j] = mean(allsamps.sum)
+            oldsamplemat[i,j] = mean(allsamps.sum_1)
         catch
+            youngsamplemat[i,j] = 0.0
+            oldsamplemat[i,j] = 0.0
             continue
         end
 
     end
 end
+```
 
 ## Computing the optimal order for the functions and taxa via HCA
 
