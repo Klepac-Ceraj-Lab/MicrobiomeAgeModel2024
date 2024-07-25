@@ -302,7 +302,8 @@ function reformat_ecs(eecs::String, colset::Dict; pattern::Regex = r"(\d+\.\d+\.
     ec_num = string(first(humann_ec_matches).captures[1])
     ec_fun = string(first(humann_ec_matches).captures[2])
 
-    rich(rich("█\t"; font = :bold, color = colset[ec_num[1]]), ec_fun, rich(" [$(ec_num)]"; font = :bold, color = colset[ec_num[1]]))
+    rich(rich("█\t"; font = :bold, color = colset[ec_num[1]]), ec_fun, rich(" [$(ec_num)]"; font = :bold, color = :black))
+    # rich(rich("█\t"; font = :bold, color = colset[ec_num[1]]), ec_fun, rich(" [$(ec_num)]"; font = :bold, color = colset[ec_num[1]]))
     # Other examples of unicode rectangles: ▮ (version 1); █ ▉ ▊ ▋ ▌ ▍ ▎ ▏
 
 end
