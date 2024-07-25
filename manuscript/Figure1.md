@@ -171,7 +171,7 @@ for row in eachrow(combined_inputs)
 end
 
 # Prepare the data for plotting
-categories = [ "CMD", "ECHO", "1kDLEAP-KHULA", "1kDLEAP-COMBINE", "1kDLEAP-GERMINA", "1kDLEAP-M4EFAD" ] #equivalent to `unique(combined_inputs.datasource)`, but hardcoded in this order for aesthetic purposes
+categories = [ "CMD", "ECHO-RESONANCE", "1kDLEAP-KHULA", "1kDLEAP-COMBINE", "1kDLEAP-GERMINA", "1kDLEAP-M4EFAD" ] #equivalent to `unique(combined_inputs.datasource)`, but hardcoded in this order for aesthetic purposes
 bins = 1:nbins
 bar_heights = zeros(length(categories), nbins)
 
