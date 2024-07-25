@@ -220,8 +220,52 @@ sort!(a, :diff)
 
 ordered_functions = selected_functions[hclust_function_order]
 ordered_taxa = important_bugs[hclust_taxa_order]
+```
 
-## For paper results paragraph
+## Some prints for paper results paragraph
+```julia
+vatanen2018_ECs = [
+    "3.6.1.1: Inorganic diphosphatase",
+    "2.7.7.56: tRNA nucleotidyltransferase",
+    "2.6.1.42: Branched-chain-amino-acid transaminase",
+    "3.1.22.4: Crossover junction endodeoxyribonuclease",
+    "1.6.1.2: NAD(P)(+) transhydrogenase (Re/Si-specific)",
+    "1.1.1.44: Phosphogluconate dehydrogenase (NADP(+)-dependent, decarboxylating)",
+    "5.4.2.11: Phosphoglycerate mutase (2,3-diphosphoglycerate-dependent)",
+    "6.3.4.18: 5-(carboxyamino)imidazole ribonucleotide synthase",
+    "6.3.1.2: Glutamate--ammonia ligase",
+    "2.3.1.117: 2,3,4,5-tetrahydropyridine-2,6-dicarboxylate N-succinyltransferase",
+    "5.3.1.6: Ribose-5-phosphate isomerase",
+    "4.2.1.1: Carbonate dehydratase",
+    "2.7.7.72: CCA tRNA nucleotidyltransferase",
+    "2.5.1.74: 1,4-dihydroxy-2-naphthoate polyprenyltransferase",
+    "2.3.1.54: Formate C-acetyltransferase",
+    "4.4.1.8: Cystathionine beta-lyase",
+    "2.7.1.15: Ribokinase",
+    "1.11.1.15: Peroxiredoxin",
+    "6.3.4.14: Biotin carboxylase",
+    "1.1.1.27: L-lactate dehydrogenase",
+    "6.1.1.18: Glutamine--tRNA ligase",
+    "2.8.4.4: [Ribosomal protein S12] (aspartate(89)-C(3))-methylthiotransferase",
+    "2.2.1.1: Transketolase",
+    "2.7.1.144: Tagatose-6-phosphate kinase",
+    "2.3.1.179: Beta-ketoacyl-[acyl-carrier-protein] synthase II",
+    "5.4.2.12: Phosphoglycerate mutase (2,3-diphosphoglycerate-independent)",
+    "2.7.1.26: Riboflavin kinase",
+    "2.7.1.11: 6-phosphofructokinase",
+    "4.1.1.49: Phosphoenolpyruvate carboxykinase (ATP)",
+    "2.6.1.83: LL-diaminopimelate aminotransferase",
+    "2.3.1.51: 1-acylglycerol-3-phosphate O-acyltransferase",
+    "1.7.99.1: Hydroxylamine reductase",
+    "2.4.1.21: Starch synthase",
+    "2.5.1.3: Thiamine-phosphate diphosphorylase",
+    "4.1.99.17: Phosphomethylpyrimidine synthase",
+    "2.7.1.90: Diphosphate--fructose-6-phosphate 1-phosphotransferase",
+    "3.4.24.78: GPR endopeptidase",
+    "2.5.1.49: O-acetylhomoserine aminocarboxypropyltransferase",
+    "1.4.1.14: Glutamate synthase (NADH)",
+    "4.1.1.3: Oxaloacetate decarboxylase"
+]
 
 absolute_differences_mat = abs.(ordered_oldsamplemat .- ordered_youngsamplemat)
 
