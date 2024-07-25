@@ -63,6 +63,7 @@ end
 functional_profiles = myload(ECProfiles(); timepoint_metadata = functional_mdata) # this can take a bit
 filtered_functional_profiles = relativeabundance(filter(f -> name(f) == "UNMAPPED" || hastaxon(f), functional_profiles))
 ecs_mdata = DataFrame(get(filtered_functional_profiles))
+CSV.write("ecs_metadata.csv", ecs_mdata)
 # samples_inrename = ecs_mdata.sample
 # samples_expected = functional_mdata.sample
 # @assert (all(samples_expected .∈ Ref(samples_inrename)) & all(samples_inrename .∈ Ref(samples_expected)))
