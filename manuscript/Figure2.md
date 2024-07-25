@@ -210,6 +210,8 @@ println("Number of features positively correlated with age: $(sum( importances_t
 println("Number of features negatively correlated with age: $(sum( importances_table.correl .< 0.0 )) or $(round(sum( importances_table.correl .< 0.0 )/nrow(importances_table); digits = 3))")
 println("Number of species positively correlated with age: $(sum( onlyspecies_importances.correl .> 0.0 )) or $(round(sum( onlyspecies_importances.correl .> 0.0 )/nrow(onlyspecies_importances); digits = 3))")
 println("Number of species negatively correlated with age: $(sum( onlyspecies_importances.correl .< 0.0 )) or $(round(sum( onlyspecies_importances.correl .< 0.0 )/nrow(onlyspecies_importances); digits = 3))")
+println("Mean features positive correlation: $(mean( importances_table.correl[ importances_table.correl .> 0.0 ])), SD = $(Statistics.std( importances_table.correl[ importances_table.correl .> 0.0 ]))")
+println("Mean features negative correlation: $(mean( importances_table.correl[ importances_table.correl .< 0.0 ])), SD = $(Statistics.std( importances_table.correl[ importances_table.correl .< 0.0 ]))")
 println("Mean species positive correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ]))")
 println("Mean species negative correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ]))")
 ```
