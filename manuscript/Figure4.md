@@ -373,8 +373,8 @@ figure4_master = Figure(; size = (1500, 1400))
 ```julia
 axA = Axis(
     figure4_master[1, 1],
-    xticks = (1:length(ordered_taxa[subset_to_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_to_plot] ]),
-    yticks = (1:length(ordered_functions), [ reformat_ecs(el, ec_colors) for el in ordered_functions ]),
+    xticks = (1:length(ordered_taxa[subset_taxa_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_taxa_plot] ]),
+    yticks = (1:length(ordered_functions[subset_function_plot]), [ reformat_ecs(el, ec_colors) for el in ordered_functions[subset_function_plot] ]),
     xticklabelrotation = pi/2,
     xticklabelsize = 18,
     yticklabelsize = 18,
@@ -382,10 +382,11 @@ axA = Axis(
     xticklabelfont = "TeX Gyre Heros Makie Italic",
     title = "3 months timepoint", titlesize = 20)
 hideydecorations!(axA)
+
 axB = Axis(
     figure4_master[1, 2],
-    xticks = (1:length(ordered_taxa[subset_to_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_to_plot] ]),
-    yticks = (1:length(ordered_functions), [ reformat_ecs(el, ec_colors) for el in ordered_functions ]),
+    xticks = (1:length(ordered_taxa[subset_taxa_plot]), [reformat_taxa(s, importances_table) for s in ordered_taxa[subset_taxa_plot] ]),
+    yticks = (1:length(ordered_functions[subset_function_plot]), [ reformat_ecs(el, ec_colors) for el in ordered_functions[subset_function_plot] ]),
     xticklabelrotation = pi/2,
     xticklabelsize = 18,
     yticklabelsize = 18,
@@ -394,12 +395,15 @@ axB = Axis(
     yreversed = true,
     title = "12 months timepoint", titlesize = 20)
 
-## Plot with subsets to make the figure slightly smaller and simpler
-hm = heatmap!(axA, ordered_youngsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
-hm = heatmap!(axB, ordered_oldsamplemat[subset_to_plot, :], colormap = :magma, colorrange = (0.0, 3.0))
+hidexdecorations!(axA, label = true, ticklabels = false, ticks = true, grid = true, minorgrid = true, minorticks = true)
+hidexdecorations!(axB, label = true, ticklabels = false, ticks = true, grid = true, minorgrid = true, minorticks = true)
 
-Legend(
-    figure4_master[2, 1],
+## Plot with subsets to make the figure slightly smaller and simpler
+hm = heatmap!(axA, ordered_youngsamplemat[subset_taxa_plot, subset_function_plot], colormap = :magma, colorrange = (0.0, 2.0))
+hm = heatmap!(axB, ordered_oldsamplemat[subset_taxa_plot, subset_function_plot], colormap = :magma, colorrange = (0.0, 2.0))
+
+lgd = Legend(
+    figure4_master, bbox = BBox(900, 1350, 50, 150),
     [
         MarkerElement(marker = :circle, color = ec_colors['1'], markersize = 14),
         MarkerElement(marker = :circle, color = ec_colors['2'], markersize = 14),
@@ -419,11 +423,25 @@ Legend(
     orientation = :vertical,
     nbanks = 2,
     tellheight = true,
-    tellwidth = false
+    tellwidth = false,
+    labelsize = 18#,
+    # margin = (900, -900, 300, -300)
 )
 
-Colorbar(figure4_master[2,2], hm, label = "log10(CPM)", vertical = false)
+cbr = Colorbar(
+    figure4_master, bbox = BBox(900, 1350, 160, 260),
+    hm,
+    label = "log10(CPM)",
+    labelsize = 18,
+    ticklabelsize = 18,
+    vertical = false
+)
+Label(figure4_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
+Label(figure4_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
+```
 
+# Export Figure 4
+```julia
 save(joinpath(outdir, "figures", "Figure4.png"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
