@@ -373,10 +373,17 @@ scD = scatter!(
     MDS_columns[:,2];
     color = [ (el, 0.6) for el in combined_inputs.datacolor ]
 )
-
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), DE_Subfig[1,1])
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), DE_Subfig[1,1])
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.eps"), DE_Subfig[1,1])
+annotations!(
+    axD,
+    [
+        "R² = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Data\nSource").varexpl[1]/100; digits = 3)),
+        "p = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Data\nSource").pvalue[1]; digits = 3))
+    ],
+    [Point(0.035, -0.03), Point(0.035, -0.035)];
+    fontsize = 14,
+    # align = (:right, :bottom)
+    align = (:center, :bottom)
+)
 
 ```
 
@@ -398,12 +405,19 @@ scE = scatter!(
     color = combined_inputs.ageMonths,
     colormap = :viridis
 )
+annotations!(
+    axE,
+    [
+        "R² = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Age").varexpl[1]/100; digits = 3)),
+        "p = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Age").pvalue[1]; digits = 3))
+    ],
+    [Point(0.035, -0.03), Point(0.035, -0.035)];
+    fontsize = 14,
+    # align = (:right, :bottom)
+    align = (:center, :bottom)
+)
 
-Colorbar(DE_Subfig[1, 3], scE, tellheight = false, alignmode = Inside())
-
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), fig)
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), fig)
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.eps"), fig)
+colb = Colorbar(DE_Subfig[1, 3], scE, tellheight = false, tellwidth = true, height = 360, width = 10, label = "Age in Months", alignmode = Outside())
 ```
 
 ## Add labels
