@@ -76,6 +76,7 @@ filtered_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(filtered_input
 subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness should be at least 1.
 select!(filtered_inputs, Not(:richness))
 
+CSV.write(joinpath(outdir, "combined_inputs.csv"), filtered_inputs)
 CSV.write("manuscript/final_manuscript_inputs.csv", filtered_inputs)
 ```
 
@@ -209,6 +210,8 @@ println("Number of features positively correlated with age: $(sum( importances_t
 println("Number of features negatively correlated with age: $(sum( importances_table.correl .< 0.0 )) or $(round(sum( importances_table.correl .< 0.0 )/nrow(importances_table); digits = 3))")
 println("Number of species positively correlated with age: $(sum( onlyspecies_importances.correl .> 0.0 )) or $(round(sum( onlyspecies_importances.correl .> 0.0 )/nrow(onlyspecies_importances); digits = 3))")
 println("Number of species negatively correlated with age: $(sum( onlyspecies_importances.correl .< 0.0 )) or $(round(sum( onlyspecies_importances.correl .< 0.0 )/nrow(onlyspecies_importances); digits = 3))")
+println("Mean features positive correlation: $(mean( importances_table.correl[ importances_table.correl .> 0.0 ])), SD = $(Statistics.std( importances_table.correl[ importances_table.correl .> 0.0 ]))")
+println("Mean features negative correlation: $(mean( importances_table.correl[ importances_table.correl .< 0.0 ])), SD = $(Statistics.std( importances_table.correl[ importances_table.correl .< 0.0 ]))")
 println("Mean species positive correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .> 0.0 ]))")
 println("Mean species negative correlation: $(mean( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ])), SD = $(Statistics.std( onlyspecies_importances.correl[ onlyspecies_importances.correl .< 0.0 ]))")
 ```
@@ -475,4 +478,116 @@ save(joinpath(outdir, "figures", "Figure2.png"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.eps"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.svg"), figure2_master)
 figure2_master
+```
+
+# Creating Supplementary Figure 2
+```julia
+supp_figure2_master = Figure(; size = (1400, 1600))
+
+let cc = 0
+
+for rrow in 1:7
+    for ccol in 1:5
+
+        supp_figure2_master[rrow, ccol] = GridLayout(alignmode=Inside())
+
+        cc = cc+1
+        ss = importances_table.variable[1:nfeat_toplot][cc]
+
+        randord = randperm(length(filtered_inputs.ageMonths))
+
+        if (cc == 3) ## Shannon Plot
+
+            ax = Axis(
+                supp_figure2_master[rrow, ccol];
+                xlabel = "Age in Months",
+                ylabel = replace(ss, "_" => " "),
+                xticks = 2:4:18,
+                yticklabelsize=14,
+                titlefont="TeX Gyre Heros Makie Italic"
+            )
+            
+            xlims!(ax, (1.99, 18.01))
+            ylims!(ax, (-0.01, 4.01))
+            tightlimits!(axB, Bottom())
+            hidexdecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+            hideydecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+            scatter!(
+                ax,
+                combined_inputs.ageMonths[randord][combined_inputs[:, ss][randord] .!= 0.0],
+                combined_inputs[:, ss][randord][combined_inputs[:, ss][randord] .!= 0.0],
+                color = [ (ccol, 0.6) for ccol in combined_inputs[:, "datacolor"][randord] ][combined_inputs[:, ss][randord] .!= 0.0]
+            )
+
+        else
+
+            ax = Axis(
+                supp_figure2_master[rrow, ccol][1,1];
+                xlabel = "Age in Months",
+                ylabel = "Abundance",
+                xticks = 2:4:18,
+                title = replace(ss, "_" => " "),
+                yticklabelsize=14,
+                titlefont="TeX Gyre Heros Makie Italic"
+            )
+
+            xlims!(ax, (1.99, 18.01))
+
+            hidedecorations!(ax, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+            hidexdecorations!(ax)
+
+            scatter!(
+                ax,
+                combined_inputs.ageMonths[randord][combined_inputs[:, ss][randord] .!= 0.0],
+                combined_inputs[:, ss][randord][combined_inputs[:, ss][randord] .!= 0.0],
+                color = [ (ccol, 0.6) for ccol in combined_inputs[:, "datacolor"][randord] ][combined_inputs[:, ss][randord] .!= 0.0]
+            )
+
+            axbt = Axis(
+                supp_figure2_master[rrow, ccol][2,1];
+                xlabel = "Age in Months",
+                ylabel = "Prevalence",
+                yticks = (0.0:0.25:1.0, ["0", "", "50%", "", "100%"]),
+                xticks = 2:4:18,
+                yticklabelsize=14,
+                # yticklabelrotation=pi/6
+            )
+
+            xlims!(axbt, (1.99, 18.01))
+            ylims!(axbt, (-0.01, 1.01))
+
+            linkxaxes!(ax, axbt)
+            hidedecorations!(axbt, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+            intervals = 2.0:1.0:18.0
+            prevalences = zeros(Float64, length(intervals)-1)
+
+            for (i, (lb,ub)) in enumerate(zip(collect(intervals[1:end-1]), collect(intervals[2:end])))
+                interval_inputs = subset(filtered_inputs, :ageMonths => x -> ( lb .<= x .< ub ))
+                prevalences[i] = mean(interval_inputs[:,ss] .> 0.0)
+            end
+
+            barplot!(
+                axbt,
+                intervals[1:end-1] .+ 0.5,
+                prevalences,
+                color = :gray20
+            )
+
+            yspace = maximum(tight_yticklabel_spacing!, [ax, axbt])
+            ax.yticklabelspace = yspace
+            axbt.yticklabelspace = yspace
+
+        end
+    end
+end
+end
+
+rowgap!(supp_figure2_master.layout, 5)
+
+save(joinpath(outdir, "figures", "FigureS2.png"), supp_figure2_master)
+save(joinpath(outdir, "figures", "FigureS2.eps"), supp_figure2_master)
+save(joinpath(outdir, "figures", "FigureS2.svg"), supp_figure2_master)
+supp_figure2_master
 ```

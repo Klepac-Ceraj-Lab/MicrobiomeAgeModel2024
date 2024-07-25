@@ -60,12 +60,17 @@ bins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
 hp_idx = 15
 
-importances_table = @chain Leap.hpimportances(regression_Age_FullCV, hp_idx) begin
-    subset(:variable => x -> x .!= "richness")
-    subset(:variable => x -> x .!= "shannon_index")
-end
+importances_table = hpimportances(regression_Age_FullCV, hp_idx)
+importances_table.cumsum = cumsum(importances_table.weightedImportance)
+nfeat_toplot = findfirst(importances_table.cumsum .> 0.7)
+importances_table = importances_table[1:nfeat_toplot,:]
 
-important_bugs = importances_table[1:30, :variable]
+importances_table.correl = [ cor(taxonomic_profiles[:, ccol], taxonomic_profiles.ageMonths) for ccol in importances_table.variable ]
+importances_table.impsign = importances_table.weightedImportance .* sign.(importances_table.correl)
+
+onlyspecies_importances = subset(importances_table, :variable => x -> x .!= "Shannon_index")
+
+important_bugs = onlyspecies_importances.variable
 ```
 
 ## Idea 1. Abundance and Prevalence Heatmap - CMD, ECHO and Khula samples, top most important variables
@@ -209,11 +214,26 @@ hcl_taxa_geomeans = hclust(dist_taxa_geomeans; linkage=:complete, branchorder=:o
 abundance_order = hcl_taxa_abundances.order
 prevalence_order = hcl_taxa_prevalences.order
 geomeans_order = hcl_taxa_geomeans.order
+
+## To plot the dendrogram
+# save(joinpath(outdir, "figures", "prevalences_dendrogram.png"), StatsPlots.plot(hcl_taxa_prevalences))
+
+correlations_df = [
+    (; 
+        species = important_bugs[i],
+        cor1 = cor(cmd_prevalence_matrix[i, :], echo_prevalence_matrix[i, :] ),
+        cor2 = cor(cmd_prevalence_matrix[i, :], khula_prevalence_matrix[i, :] ),
+        cor3 = cor(khula_prevalence_matrix[i, :], echo_prevalence_matrix[i, :] ),
+    ) for i in eachindex(important_bugs)
+]
+correlations_df = DataFrame(correlations_df)
+correlations_df.geomeans = ([ maximum([0.0, el]) for el in correlations_df.cor1 .* correlations_df.cor2 .* correlations_df.cor3 ]) .^ 0.33
+# sort!(correlations_df, :geomeans)
 ```
 
 # Creating Master Figure 3
 ```julia
-figure3_master = Figure(; size = (1600, 900))
+figure3_master = Figure(; size = (1600, 1000))
 ```
 
 ## Plotting all the heatmaps
@@ -286,7 +306,7 @@ hideydecorations!(axC)
 # hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = true))
 hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = false))
 
-Colorbar(figure3_master[1,4], hmA, label = "Prevalence", labelsize = 24)
+Colorbar(figure3_master[1,4], hmA, label = "Prevalence",  ticks = 0.0:0.2:1.0, ticklabelsize = 24, labelsize = 24)
 ```
 
 ## Add labels

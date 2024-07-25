@@ -48,14 +48,38 @@ presence_absence = false # This argument will control whether the model will be 
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-include("notebooks/allcohorts_data_loading_nofeed.jl")
+include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
+combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
 ```
 
 ##  Summary Tables
 
 ### Number of unique samples and subjects before prevalence filtering
 ```julia
-replace!(combined_inputs.datasource, "DIABIMMUNE" => "CMD")
+replace!(combined_inputs.datasource, "CMD-DIABIMMUNE" => "CMD")
+replace!(combined_inputs.datasource, "CMD-OTHER" => "CMD")
+
+println("Number of unique stool samples: $(length(unique(combined_inputs.sample)))")
+println("Number of unique subjects: $(length(unique(combined_inputs.subject_id)))")
+
+println("Mean host age at sample collection: $(round(mean(combined_inputs.ageMonths); digits = 2))")
+println("SD of host age at sample collection: $(round(Statistics.std(combined_inputs.ageMonths); digits = 2))")
+
+countries_present = unique(combined_inputs.site)
+println("$(length(countries_present)) countries represented in our dataset: $(countries_present)")
+lmic_present = [ "BRA", "ZAF", "BGD", "SLV" ]
+lmic_samples = subset(combined_inputs, :site => x -> x .∈ Ref(lmic_present))
+println("$(nrow(lmic_samples)) samples are from LMICs, or $(nrow(lmic_samples)*100/nrow(combined_inputs)) %")
+LEAP_samples = subset(combined_inputs, :datasource => x -> x .∈ Ref(["1kDLEAP-GERMINA", "1kDLEAP-COMBINE", "1kDLEAP-KHULA", "1kDLEAP-M4EFAD"]))
+println("$(nrow(LEAP_samples)) samples are from 1kD-LEAP, or $(nrow(LEAP_samples)*100/nrow(combined_inputs)) %")
+
+println("Mean host age at sample collection for LEAP samples: $(round(mean(LEAP_samples.ageMonths); digits = 2))")
+println("SD of host age at sample collection for LEAP samples: $(round(Statistics.std(LEAP_samples.ageMonths); digits = 2))")
+
+println("Proportion of LEAP samples from LMICs: $(((nrow(LEAP_samples) - sum(LEAP_samples.datasource .== "1kDLEAP-COMBINE"))/nrow(LEAP_samples)))")
+```
+
+```julia
 datasource_summary_table = combine(
     groupby(combined_inputs, :datasource),
     :subject_id => (x -> length(unique(x))) => :Unique_subjects,
@@ -66,9 +90,20 @@ datasource_summary_table = combine(
     )
 datasource_summary_table.color = [ master_colors[el] for el in datasource_summary_table.datasource ]
 @show sort!(datasource_summary_table, :Unique_subjects)
+```
 
-subset!(combined_inputs, :richness => x -> x .>= 3) # Minimum sample richness should be more than 1% of the final number of predictors (~150, posthoc), rounded to the ceiling (so, 2). Hence, richness has to be >= 3.
-select!(combined_inputs, Not(:richness))
+## Exporting Table 1
+```julia
+table1 = combine(
+    groupby(combined_inputs, :study_name),
+    :subject_id => (x -> length(unique(x))) => :Unique_subjects,
+    :sample => (x -> length(unique(x))) => :Unique_samples,
+    :ageMonths => mean => :Mean,
+    :ageMonths => std => :Std,
+    :ageMonths => ( x -> "$(round(mean(x); digits = 2)) ($(round(Statistics.std(x); digits = 2)))" ) => :Formatted_Mean_Std,
+    )
+@show sort!(table1, :study_name)
+CSV.write("manuscript/Table1.csv", table1)
 ```
 
 # Creating Master Figure 1
@@ -136,7 +171,7 @@ for row in eachrow(combined_inputs)
 end
 
 # Prepare the data for plotting
-categories = [ "CMD", "ECHO", "1kDLEAP-KHULA", "1kDLEAP-COMBINE", "1kDLEAP-GERMINA", "1kDLEAP-M4EFAD" ] #equivalent to `unique(combined_inputs.datasource)`, but hardcoded in this order for aesthetic purposes
+categories = [ "CMD", "ECHO-RESONANCE", "1kDLEAP-KHULA", "1kDLEAP-COMBINE", "1kDLEAP-GERMINA", "1kDLEAP-M4EFAD" ] #equivalent to `unique(combined_inputs.datasource)`, but hardcoded in this order for aesthetic purposes
 bins = 1:nbins
 bar_heights = zeros(length(categories), nbins)
 
@@ -178,8 +213,8 @@ end
 ## Figure 1, Panel B - Pie chart
 ```julia
 fig = Figure(; size = (800, 500))
-ax1 = Axis(fig[1,1], title = "Participants", autolimitaspect = 1, titlesize = 24)
-ax2 = Axis(fig[1,2], title = "Samples", autolimitaspect = 1, titlesize = 24)
+ax1 = Axis(fig[1,1], title = "Participants", autolimitaspect = 1, titlesize = 30)
+ax2 = Axis(fig[1,2], title = "Samples", autolimitaspect = 1, titlesize = 30)
 xlims!(ax1, (-5.5, +5.5)) 
 ylims!(ax1, (-5.5, +5.5)) 
 xlims!(ax2, (-5.5, +5.5)) 
@@ -227,11 +262,11 @@ Legend(
     tellheight = true,
     tellwidth = true
 )
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.png"), fig)
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.eps"), fig)
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.svg"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.png"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.eps"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.svg"), fig)
 ```
-![Samples Pie Chart](../results/2024AgeModelManuscript/figures/Figure1_PanelB_ElementII.png)
+![Samples Pie Chart](../results/2024AgeModelManuscript/figures/Figure1_PanelB_Piecharts.png)
 
 ## Figure 1, Panel C - Methodology Workflow
 ```julia
@@ -243,7 +278,7 @@ image!(axC, fig1_panelC)
 
 ## PERMANOVAS
 ```julia
-spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-2]), dims=1)
+spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-3]), dims=1)
 
 lt4idx = combined_inputs.ageMonths .< 4.0
 lt8idx = combined_inputs.ageMonths .< 8.0
@@ -314,6 +349,13 @@ end
 stress(MDS_results)
 ```
 
+### Printing numbers relevant to the manuscript
+```julia
+println("Variance explained by PC1: $(round(100*MDS_variances[1]; digits = 2))%")
+println("Correlation between PC1 and AgeMonths: $(cor(MDS_columns[:,1], combined_inputs.ageMonths))%")
+println("Correlation between PC2 and AgeMonths: $(cor(MDS_columns[:,2], combined_inputs.ageMonths))%")
+```
+
 ### Add NMDS to Panel D of Figure 1, Color by Site
 ```julia
 axD = Axis(
@@ -331,10 +373,17 @@ scD = scatter!(
     MDS_columns[:,2];
     color = [ (el, 0.6) for el in combined_inputs.datacolor ]
 )
-
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), DE_Subfig[1,1])
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), DE_Subfig[1,1])
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.eps"), DE_Subfig[1,1])
+annotations!(
+    axD,
+    [
+        "R² = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Data\nSource").varexpl[1]/100; digits = 3)),
+        "p = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Data\nSource").pvalue[1]; digits = 3))
+    ],
+    [Point(0.035, -0.03), Point(0.035, -0.035)];
+    fontsize = 14,
+    # align = (:right, :bottom)
+    align = (:center, :bottom)
+)
 
 ```
 
@@ -356,26 +405,32 @@ scE = scatter!(
     color = combined_inputs.ageMonths,
     colormap = :viridis
 )
+annotations!(
+    axE,
+    [
+        "R² = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Age").varexpl[1]/100; digits = 3)),
+        "p = " * string(round(subset(pmn_all, :metadatum => x -> x .== "Age").pvalue[1]; digits = 3))
+    ],
+    [Point(0.035, -0.03), Point(0.035, -0.035)];
+    fontsize = 14,
+    # align = (:right, :bottom)
+    align = (:center, :bottom)
+)
 
-Colorbar(DE_Subfig[1, 3], scE, tellheight = false, alignmode = Inside())
-
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.png"), fig)
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.svg"), fig)
-# save(joinpath(outdir, "figures", "Figure1_PanelDE_PCoA.eps"), fig)
+colb = Colorbar(DE_Subfig[1, 3], scE, tellheight = false, tellwidth = true, height = 360, width = 10, label = "Age in Months", alignmode = Outside())
 ```
 
 ## Add labels
 ```julia
-Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22,font = :bold, padding = (0, 5, 0, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (-15, -15, -25, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (-15, -15, -15, 0), halign = :right, alignmode = Inside())
+Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0, 5, -25, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (-15, -15, -40, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22, font = :bold, padding = (-15, -20, -40, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
 ```julia
-
 colgap!(figure1_master.layout, 0)
 rowgap!(figure1_master.layout, 0)
 colgap!(AB_Subfig, 0)
@@ -396,5 +451,57 @@ rowsize!(AB_Subfig, 3, Relative(0.35))
 
 ```julia
 save(joinpath(outdir, "figures", "Figure1.png"), figure1_master)
+save(joinpath(outdir, "figures", "Figure1.eps"), figure1_master)
+save(joinpath(outdir, "figures", "Figure1.svg"), figure1_master)
 figure1_master
+```
+
+# Creating Supplementary Figure 1
+```julia
+supp_figure1_master = Figure(; size = (1000, 800))
+
+i = 0
+
+for rrow in 1:3
+    for ccol in 1:2
+
+    i = i+1
+
+    this_cat = categories[i]
+
+    ax = Axis(
+        supp_figure1_master[rrow, ccol],
+        ylabel = "Number of samples",
+        xlabel = "Age in months",
+        xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))),
+        title = this_cat,
+        alignmode = Inside()
+    )
+    ax.rightspinevisible = false
+    ax.topspinevisible = false
+    hidedecorations!(ax, label = false, ticklabels = false, ticks = false, grid = true, minorgrid = true, minorticks = true)
+    tightlimits!(ax, Bottom())
+    xlims!(ax, (0.49, 16.51))
+    # Plot each category as a stacked bar
+    barplot!(ax,
+            eachindex(bins),
+            bar_heights[i, :],
+            color = master_colors[this_cat],
+            strokewidth = 0.0,
+            width = 1.2
+        )
+    end
+end
+
+Label(supp_figure1_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 1, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 2, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+
+save(joinpath(outdir, "figures", "FigureS1.png"), supp_figure1_master)
+save(joinpath(outdir, "figures", "FigureS1.eps"), supp_figure1_master)
+save(joinpath(outdir, "figures", "FigureS1.svg"), supp_figure1_master)
+supp_figure1_master
 ```
