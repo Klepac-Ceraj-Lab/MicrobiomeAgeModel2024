@@ -451,5 +451,8 @@ rowsize!(AB_Subfig, 3, Relative(0.35))
 
 ```julia
 save(joinpath(outdir, "figures", "Figure1.png"), figure1_master)
+save(joinpath(outdir, "figures", "Figure1.eps"), figure1_master)
+save(joinpath(outdir, "figures", "Figure1.svg"), figure1_master)
 figure1_master
+```
 ```
