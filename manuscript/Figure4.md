@@ -309,16 +309,59 @@ function reformat_ecs(eecs::String, colset::Dict; pattern::Regex = r"(\d+\.\d+\.
 end
 
 ec_colors = Dict(
-    '1' => "darkgreen",
-    '2' => "chartreuse3",
-    '3' => "orangered",
-    '4' => "orange",
-    '5' => "maroon",
-    '6' => "midnightblue"
+    '1' => distinguishable_colors(30)[7],
+    '2' => distinguishable_colors(30)[8],
+    '3' => distinguishable_colors(30)[10],
+    '4' => distinguishable_colors(30)[12],
+    '5' => distinguishable_colors(30)[21],
+    '6' => distinguishable_colors(30)[24],
+    '7' => distinguishable_colors(30)[24]
 )
+```
 
-# subset_to_plot = vcat(collect(1:8), collect(19:30))
-subset_to_plot = collect(1:30)
+## Selecting subset of Taxa to plot
+
+```julia
+manual_taxa_to_plot = [
+ "Bifidobacterium_longum",
+ "Bifidobacterium_breve",
+ "Escherichia_coli",
+ "Ruminococcus_gnavus",
+ "Dorea_longicatena",
+ "Roseburia_inulinivorans",
+ "Eubacterium_rectale",
+ "Ruminococcus_bromii",
+ "Haemophilus_parainfluenzae",
+ "Bacteroides_fragilis",
+#  "Enterococcus_faecalis",
+#  "Hungatella_hathewayi",
+#  "Flavonifractor_plautii",
+#  "Eggerthella_lenta",
+#  "Intestinibacter_bartlettii",
+#  "Firmicutes_bacterium_CAG_41",
+#  "Roseburia_intestinalis",
+#  "Clostridium_symbiosum",
+#  "Clostridium_sp_AM22_11AC",
+#  "Eubacterium_eligens",
+#  "Agathobaculum_butyriciproducens",
+#  "Fusicatenibacter_saccharivorans",
+#  "Roseburia_faecis",
+#  "Eubacterium_hallii",
+ "Clostridium_innocuum",
+ "Dorea_formicigenerans",
+ "Erysipelatoclostridium_ramosum",
+ "Clostridium_neonatale",
+ "Streptococcus_thermophilus",
+ "Blautia_obeum",
+ "Blautia_wexlerae",
+ "Anaerostipes_hadrus",
+ "Faecalibacterium_prausnitzii",
+ "Prevotella_copri"
+]
+
+# subset_to_plot = collect(1:nfeat_toplot-1) # For debugging purposes, plot all species
+subset_taxa_plot = ordered_taxa .∈ Ref(manual_taxa_to_plot)
+subset_function_plot = 1:length(ordered_functions)-1
 ```
 
 # Creating Master Figure 4
