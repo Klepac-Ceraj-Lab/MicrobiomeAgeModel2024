@@ -262,11 +262,11 @@ Legend(
     tellheight = true,
     tellwidth = true
 )
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.png"), fig)
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.eps"), fig)
-save(joinpath(outdir, "figures", "Figure1_PanelB_ElementII.svg"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.png"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.eps"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.svg"), fig)
 ```
-![Samples Pie Chart](../results/2024AgeModelManuscript/figures/Figure1_PanelB_ElementII.png)
+![Samples Pie Chart](../results/2024AgeModelManuscript/figures/Figure1_PanelB_Piecharts.png)
 
 ## Figure 1, Panel C - Methodology Workflow
 ```julia
