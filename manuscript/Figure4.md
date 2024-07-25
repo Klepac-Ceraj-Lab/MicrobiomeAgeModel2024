@@ -71,8 +71,12 @@ CSV.write("ecs_metadata.csv", ecs_mdata)
 # setdiff(samples_inrename, samples_expected)
 
 t1_samples = subset(ecs_mdata, :visit => x -> x .== "3mo")
+println("For t1 samples, M = $(round(mean(t1_samples.ageMonths); digits = 2)), SD = $(round(std(t1_samples.ageMonths); digits = 2)), range = $(extrema(t1_samples.ageMonths))")
 t2_samples = subset(ecs_mdata, :visit => x -> x .== "6mo")
+println("For t2 samples, M = $(round(mean(t2_samples.ageMonths); digits = 2)), SD = $(round(std(t2_samples.ageMonths); digits = 2)), range = $(extrema(t2_samples.ageMonths))")
 t3_samples = subset(ecs_mdata, :visit => x -> x .== "12mo")
+println("For t3 samples, M = $(round(mean(t3_samples.ageMonths); digits = 2)), SD = $(round(std(t3_samples.ageMonths); digits = 2)), range = $(extrema(t3_samples.ageMonths))")
+
 longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeunique=true)
 ```
 
