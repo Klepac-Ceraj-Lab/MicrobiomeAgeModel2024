@@ -23,6 +23,7 @@ using GLM
 using StatsBase
 using StableRNGs
 using Polynomials
+using Colors
 ```
 
 ### Configurable parameters
