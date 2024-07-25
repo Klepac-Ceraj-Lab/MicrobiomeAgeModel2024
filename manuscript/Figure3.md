@@ -214,11 +214,26 @@ hcl_taxa_geomeans = hclust(dist_taxa_geomeans; linkage=:complete, branchorder=:o
 abundance_order = hcl_taxa_abundances.order
 prevalence_order = hcl_taxa_prevalences.order
 geomeans_order = hcl_taxa_geomeans.order
+
+## To plot the dendrogram
+# save(joinpath(outdir, "figures", "prevalences_dendrogram.png"), StatsPlots.plot(hcl_taxa_prevalences))
+
+correlations_df = [
+    (; 
+        species = important_bugs[i],
+        cor1 = cor(cmd_prevalence_matrix[i, :], echo_prevalence_matrix[i, :] ),
+        cor2 = cor(cmd_prevalence_matrix[i, :], khula_prevalence_matrix[i, :] ),
+        cor3 = cor(khula_prevalence_matrix[i, :], echo_prevalence_matrix[i, :] ),
+    ) for i in eachindex(important_bugs)
+]
+correlations_df = DataFrame(correlations_df)
+correlations_df.geomeans = ([ maximum([0.0, el]) for el in correlations_df.cor1 .* correlations_df.cor2 .* correlations_df.cor3 ]) .^ 0.33
+# sort!(correlations_df, :geomeans)
 ```
 
 # Creating Master Figure 3
 ```julia
-figure3_master = Figure(; size = (1600, 900))
+figure3_master = Figure(; size = (1600, 1000))
 ```
 
 ## Plotting all the heatmaps
