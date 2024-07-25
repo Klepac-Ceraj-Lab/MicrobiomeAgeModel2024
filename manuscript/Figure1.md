@@ -455,4 +455,53 @@ save(joinpath(outdir, "figures", "Figure1.eps"), figure1_master)
 save(joinpath(outdir, "figures", "Figure1.svg"), figure1_master)
 figure1_master
 ```
+
+# Creating Supplementary Figure 1
+```julia
+supp_figure1_master = Figure(; size = (1000, 800))
+
+i = 0
+
+for rrow in 1:3
+    for ccol in 1:2
+
+    i = i+1
+
+    this_cat = categories[i]
+
+    ax = Axis(
+        supp_figure1_master[rrow, ccol],
+        ylabel = "Number of samples",
+        xlabel = "Age in months",
+        xticks = (collect(1:nbins+1) .- 0.5, string.(floor.(Int64, bin_edges))),
+        title = this_cat,
+        alignmode = Inside()
+    )
+    ax.rightspinevisible = false
+    ax.topspinevisible = false
+    hidedecorations!(ax, label = false, ticklabels = false, ticks = false, grid = true, minorgrid = true, minorticks = true)
+    tightlimits!(ax, Bottom())
+    xlims!(ax, (0.49, 16.51))
+    # Plot each category as a stacked bar
+    barplot!(ax,
+            eachindex(bins),
+            bar_heights[i, :],
+            color = master_colors[this_cat],
+            strokewidth = 0.0,
+            width = 1.2
+        )
+    end
+end
+
+Label(supp_figure1_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 1, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 2, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+
+save(joinpath(outdir, "figures", "FigureS1.png"), supp_figure1_master)
+save(joinpath(outdir, "figures", "FigureS1.eps"), supp_figure1_master)
+save(joinpath(outdir, "figures", "FigureS1.svg"), supp_figure1_master)
+supp_figure1_master
 ```
