@@ -26,16 +26,16 @@ cmd_profiles = @chain Leap.load_raw_metaphlan("/vassar/guilherme/cmd_sequences/p
     select(Not([:sample, :file]))
 end
 cmd_pre_data = @chain innerjoin(cmd_mdata, cmd_profiles, on = :sample => :sample_base ) begin
-   # TODO: remember outerjoin and 5 mismatches all just renaming samples 
+    # TODO: remember that those samples: subset(cmd_mdata, :sample => x -> x .∈ Ref(setdiff(cmd_mdata.sample, cmd_profiles.sample_base))) have failed processing
     dropmissing()
     insertcols!(2, :westernized_cat => 2)    
-    insertcols!(2, :datasource => "CMD")
+    insertcols!(2, :datasource => "CMD-OTHER")
     insertcols!(2, :datacolor => "lightblue")
     insertcols!(2, :visit => "NA")
 end
 
-print(setdiff(cmd_profiles.sample_base, cmd_mdata.sample))
-print(setdiff(cmd_mdata.sample, cmd_profiles.sample_base))
+# print(setdiff(cmd_profiles.sample_base, cmd_mdata.sample))
+# print(setdiff(cmd_mdata.sample, cmd_profiles.sample_base))
 
 #####
 # 2. DIABIMMUNE
@@ -55,10 +55,9 @@ diabimmune_profiles = @chain Leap.load_raw_metaphlan("/vassar/guilherme/cmd_sequ
     select(Not([:sample, :file]))
 end
 diabimmune_pre_data = @chain innerjoin(diabimmune_mdata, diabimmune_profiles, on = :sample => :sample_base ) begin
-   # TODO: remember outerjoin and 5 mismatches all just renaming samples 
     dropmissing()
     insertcols!(2, :westernized_cat => 2)    
-    insertcols!(2, :datasource => "DIABIMMUNE")
+    insertcols!(2, :datasource => "CMD-DIABIMMUNE")
     insertcols!(2, :datacolor => "lightblue")
     insertcols!(2, :visit => "NA")
 end
@@ -73,14 +72,15 @@ echo_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/ECHO/ECHO_c
     insertcols!(2, :westernized_cat => 1)
     subset(:ageMonths => x -> 2.0 .< x .< 18.0)
     insertcols!(2, :visit => "NA")
-    insertcols!(2, :datasource => "ECHO")
+    insertcols!(2, :datasource => "ECHO-RESONANCE")
     insertcols!(2, :datacolor => "purple")
     insertcols!(2, :site => "USA")
     transform!(:subject_id => (x -> "resonance-" .* string.(x) ) => :subject_id; renamecols = false)
+    filter_prevalence(1e-6)
 end
 
 #####
-# 4. 1kD LEAP BRAINRISE
+# 4. 1kD LEAP BRAINRISE (GERMINA)
 #####
 brainrise_ages = CSV.read("/home/guilherme/Repos/Leap/ext_data/BRAINRISE/BRAINRISE_age_timepoints_months.csv", DataFrame)
 brainrise_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/BRAINRISE/BRAINRISE_combined_taxonomic_profiles.csv", DataFrame) begin
@@ -88,9 +88,9 @@ brainrise_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/BRAINR
     # transform!(:sample .=> (x -> string.(x)) .=> [:sample, :subject_id]; renamecols = false )
     dropmissing()
     insertcols!(1, :study_name => "NasponiliN_2024")
-    transform!(:subject_id => (x -> "brainrise-" .* string.(x) ) => :subject_id; renamecols = false)
+    transform!(:subject_id => (x -> "germina-" .* string.(x) ) => :subject_id; renamecols = false)
     sort!(:ageMonths)
-    insertcols!(2, :datasource => "1kDLEAP-BRAINRISE")
+    insertcols!(2, :datasource => "1kDLEAP-GERMINA")
     insertcols!(2, :datacolor => "blue")
     insertcols!(2, :site => "BRA")
     insertcols!(2, :westernized_cat => 2)
@@ -140,6 +140,7 @@ khula_pre_data = @chain Leap.load_raw_metaphlan(;replace_pattern = r"SEQ0\d+_S\d
     subset(:ageMonths => x -> 2.0 .< x .< 18.0)
     insertcols!(1, :study_name => "DonaldK_2024")
     insertcols!(2, :datasource => "1kDLEAP-KHULA")
+    filter_prevalence(1e-6)
 end
 
 ## 1.6. 1kD LEAP M4EFaD
@@ -184,9 +185,9 @@ combined_inputs.datasource = String.(string.(combined_inputs.datasource))
 combined_inputs.datacolor = String.(string.(combined_inputs.datacolor))
 combined_inputs.westernized_cat = Int64.(combined_inputs.westernized_cat)
 insertcols!(combined_inputs, 2, :datagroup => map( x -> begin
-        if ( x ∈ ["CMD", "DIABIMMUNE"] )
+        if ( x ∈ ["CMD-OTHER", "CMD-DIABIMMUNE"] )
             return "CMD"
-        elseif ( x == "ECHO" )
+        elseif ( x == "ECHO-RESONANCE" )
             return "ECHO"
         else
             return "LEAP"
@@ -211,8 +212,7 @@ for i in 1:nrow(combined_inputs)
 end
 
 ### Calculating Shannon Diversity and Richness
-combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)])))
-combined_inputs.shannon_index = map(x -> Microbiome.shannon(collect(x)), eachrow(combined_inputs[:, 11:ncol(combined_inputs)-1]))
+combined_inputs.Shannon_index = map(x -> Microbiome.shannon(collect(x)), eachrow(combined_inputs[:, 11:ncol(combined_inputs)]))
 
 ### Exporting pooled dataset
 CSV.write(joinpath(outdir, "combined_inputs.csv"), combined_inputs)
