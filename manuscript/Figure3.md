@@ -306,7 +306,7 @@ hideydecorations!(axC)
 # hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = true))
 hmC = heatmap!(axC, khula_prevalence_matrix[prevalence_order, :]', colormap = cgrad(:lapaz, rev = false))
 
-Colorbar(figure3_master[1,4], hmA, label = "Prevalence", labelsize = 24)
+Colorbar(figure3_master[1,4], hmA, label = "Prevalence",  ticks = 0.0:0.2:1.0, ticklabelsize = 24, labelsize = 24)
 ```
 
 ## Add labels
