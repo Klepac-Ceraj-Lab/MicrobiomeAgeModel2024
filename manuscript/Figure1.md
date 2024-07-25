@@ -48,14 +48,38 @@ presence_absence = false # This argument will control whether the model will be 
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-include("notebooks/allcohorts_data_loading_nofeed.jl")
+include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
+combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
 ```
 
 ##  Summary Tables
 
 ### Number of unique samples and subjects before prevalence filtering
 ```julia
-replace!(combined_inputs.datasource, "DIABIMMUNE" => "CMD")
+replace!(combined_inputs.datasource, "CMD-DIABIMMUNE" => "CMD")
+replace!(combined_inputs.datasource, "CMD-OTHER" => "CMD")
+
+println("Number of unique stool samples: $(length(unique(combined_inputs.sample)))")
+println("Number of unique subjects: $(length(unique(combined_inputs.subject_id)))")
+
+println("Mean host age at sample collection: $(round(mean(combined_inputs.ageMonths); digits = 2))")
+println("SD of host age at sample collection: $(round(Statistics.std(combined_inputs.ageMonths); digits = 2))")
+
+countries_present = unique(combined_inputs.site)
+println("$(length(countries_present)) countries represented in our dataset: $(countries_present)")
+lmic_present = [ "BRA", "ZAF", "BGD", "SLV" ]
+lmic_samples = subset(combined_inputs, :site => x -> x .∈ Ref(lmic_present))
+println("$(nrow(lmic_samples)) samples are from LMICs, or $(nrow(lmic_samples)*100/nrow(combined_inputs)) %")
+LEAP_samples = subset(combined_inputs, :datasource => x -> x .∈ Ref(["1kDLEAP-GERMINA", "1kDLEAP-COMBINE", "1kDLEAP-KHULA", "1kDLEAP-M4EFAD"]))
+println("$(nrow(LEAP_samples)) samples are from 1kD-LEAP, or $(nrow(LEAP_samples)*100/nrow(combined_inputs)) %")
+
+println("Mean host age at sample collection for LEAP samples: $(round(mean(LEAP_samples.ageMonths); digits = 2))")
+println("SD of host age at sample collection for LEAP samples: $(round(Statistics.std(LEAP_samples.ageMonths); digits = 2))")
+
+println("Proportion of LEAP samples from LMICs: $(((nrow(LEAP_samples) - sum(LEAP_samples.datasource .== "1kDLEAP-COMBINE"))/nrow(LEAP_samples)))")
+```
+
+```julia
 datasource_summary_table = combine(
     groupby(combined_inputs, :datasource),
     :subject_id => (x -> length(unique(x))) => :Unique_subjects,
