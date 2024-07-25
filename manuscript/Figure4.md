@@ -268,20 +268,21 @@ vatanen2018_ECs = [
 ]
 
 absolute_differences_mat = abs.(ordered_oldsamplemat .- ordered_youngsamplemat)
+@show func_stats_df
 
-fourbugclust = absolute_differences_mat[27:30, 1:20]
-@show(mean(fourbugclust[fourbugclust .!= 0.0]))
-@show(conf_interval(fourbugclust[fourbugclust .!= 0.0]))
+println("Number of functions from Vatanen2018 on our list: $(sum(ordered_functions .∈ Ref(vatanen2018_ECs))) or $(round(100*sum(ordered_functions .∈ Ref(vatanen2018_ECs))/length(vatanen2018_ECs); digits = 2))")
 
-bigbugclust = absolute_differences_mat[19:26,21:40]
-@show(mean(bigbugclust[bigbugclust .!= 0.0]))
-@show(conf_interval(bigbugclust[bigbugclust .!= 0.0]))
+youngclustbugs = [ "Bifidobacterium_longum", "Bifidobacterium_breve", "Escherichia_coli", "Ruminococcus_gnavus" ]
+oldclustbugs = ["Dorea_longicatena", "Blautia_obeum", "Blautia_wexlerae", "Anaerostipes_hadrus", "Faecalibacterium_prausnitzii", "Prevotella_copri"]
 
+youngclust_trim = ordered_diffmat[ordered_taxa .∈ Ref(youngclustbugs), 1:n_to_collect]
+oldclust_trim = ordered_diffmat[ordered_taxa .∈ Ref(oldclustbugs), (n_to_collect+1):(2*n_to_collect)]
+
+println("For the cluster of species decreasing in abundance, mean fold change of EC abundance is $(mean(youngclust_trim[youngclust_trim .!= 0.0])) +- $(Leap.conf_interval(youngclust_trim[youngclust_trim .!= 0.0]))")
+println("For the cluster of species increasing in abundance, mean fold change of EC abundance is $(mean(oldclust_trim[oldclust_trim .!= 0.0])) +- $(Leap.conf_interval(oldclust_trim[oldclust_trim .!= 0.0]))")
 #####
 # Building Figure
 #####
-
-importances_table.correl = [ cor(taxonomic_profiles[:, ccol], taxonomic_profiles.ageMonths) for ccol in importances_table.variable ]
 
 function reformat_taxa(ttaxa::String, imptab::DataFrame)
 
