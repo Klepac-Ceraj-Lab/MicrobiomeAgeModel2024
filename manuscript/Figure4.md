@@ -102,57 +102,52 @@ important_bugs = onlyspecies_importances.variable
 
 Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
 ```julia
-filtered_functions = union( name.(features(filtered_functional_profiles)) )
-selected_functions_widedfs = [ comm2wide(filter(feat-> name((feat)) == this_function, filtered_functional_profiles)) for this_function in filtered_functions ]
+# filtered_functions = union( first.(split.(name.(features(filtered_functional_profiles)), '|')))
+filtered_functions = union( name.(features(filtered_functional_profiles)))
 
-scores = Vector{Float64}(undef, length(filtered_functions))
-diff_MEANs = Vector{Float64}(undef, length(filtered_functions))
-foldchanges = Vector{Float64}(undef, length(filtered_functions))
-diff_STDs = Vector{Float64}(undef, length(filtered_functions))
-diff_CIs = Vector{Float64}(undef, length(filtered_functions))
+func_stats_df = map(enumerate(filtered_functions)) do (i,f)
+    i % 10 == 0 && @info i
+    f == "UNGROUPED" && return (; function_name = f, score = NaN, difference = NaN, fold_change = NaN, difference_SD = NaN, difference_CI = NaN)
+    f == "UNMAPPED" && return (; function_name = f, score = NaN, difference = NaN, fold_change = NaN, difference_SD = NaN, difference_CI = NaN)
 
-for i in eachindex(selected_functions_widedfs)
-    selected_functions_widedfs[i].sum = map(x -> sum(x)*1e6, eachrow(Matrix(selected_functions_widedfs[i][:, 5:end])))
+    fnum = split(first(split(f, ':')), '.')
+    srch = Regex("^" * join(fnum, raw"\.") * ":")
 
-    select!(selected_functions_widedfs[i], [:sample, :subject_id, :ageMonths, :visit, :sum])
-    youngsamps = subset(selected_functions_widedfs[i], :visit => x -> x .== "3mo")
-    # youngsamps = subset(selected_functions_widedfs[i], :ageMonths => x -> x .<= 4.0)
+    df = comm2wide(filtered_functional_profiles[srch, :])
+    df.sum = map(x -> sum(x)*1e6, eachrow(Matrix(df[:, 5:end])))
 
-    select!(youngsamps, [:subject_id, :sum])
-    oldsamps = subset(selected_functions_widedfs[i], :visit => x -> x .== "12mo")
-    # oldsamps = subset(selected_functions_widedfs[i], :ageMonths => x -> x .>= 9.0)
+    select!(df, [:sample, :subject_id, :ageMonths, :visit, :sum])
+    youngsamps = subset(df, :visit => x -> x .== "3mo")
+    # youngsamps = subset(df, :ageMonths => x -> x .<= 4.0)
+    rename!(youngsamps, :sum => :sum_young )
+    select!(youngsamps, [:subject_id, :sum_young])
 
-    select!(oldsamps, [:subject_id, :sum])
-    @show allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
+    oldsamps = subset(df, :visit => x -> x .== "12mo")
+    # oldsamps = subset(df, :ageMonths => x -> x .>= 9.0)
+    rename!(oldsamps, :sum => :sum_old )
+    select!(oldsamps, [:subject_id, :sum_old])
 
-    scores[i] = round( (sum( ((allsamps.sum_1 .> 10) .| (allsamps.sum .> 10) ) .* sign.(allsamps.sum_1 .- allsamps.sum)) / nrow(allsamps)); digits = 2)
+    allsamps = innerjoin(youngsamps, oldsamps, on = :subject_id; makeunique = true)
 
-    diff_MEANs[i] = mean(allsamps.sum_1) - mean(allsamps.sum)
-    foldchanges[i] = mean(log10.(allsamps.sum_1 .+ 1e-3)) - mean(log10.(allsamps.sum .+ 1e-3))
-    diff_STDs[i] = Statistics.std((allsamps.sum_1) .- mean(allsamps.sum))
-    diff_CIs[i] = ( 1.96 * Statistics.std((allsamps.sum_1) .- mean(allsamps.sum)) ) / sqrt(length(allsamps.sum_1))
-end
+    score = round( (sum( ((allsamps.sum_old .> 10) .| (allsamps.sum_young .> 10) ) .* sign.(allsamps.sum_old .- allsamps.sum_young)) / nrow(allsamps)); digits = 2)
+
+    difference = mean(allsamps.sum_old) - mean(allsamps.sum_young)
+    fold_change = mean(log10.(allsamps.sum_old .+ 1e-3)) - mean(log10.(allsamps.sum_young .+ 1e-3))
+    difference_SD = Statistics.std((allsamps.sum_old) .- mean(allsamps.sum_young))
+    difference_CI = ( 1.96 * Statistics.std((allsamps.sum_old) .- mean(allsamps.sum_young)) ) / sqrt(length(allsamps.sum_old))
+    return (; function_name = f, score, difference, fold_change, difference_SD, difference_CI)
+end |> DataFrame
 ```
 
 We aimed to plot the 1.5% extremal ECs, or:
 ```julia
-n_to_collect = ceil(Int64, (length(filtered_functions)*0.015)/2.0)
-func_idxes = extremes(sortperm(scores), n_to_collect)
-@show selected_functions = sort(filtered_functions[func_idxes])[1:end]
-
-func_stats_df = DataFrame(
-    :function_name => filtered_functions,
-    :formatted_diff => [ "$(round(i; digits = 2)) ± $(round(j; digits = 2))" for (i,j) in zip(diff_MEANs,diff_CIs) ],
-    :difference => diff_MEANs,
-    :fold_change => foldchanges,
-    :score => scores,
-    :difference_CI => diff_CIs,
-    :difference_SD => diff_STDs,    
-)
+subset!(func_stats_df, :score => ByRow(x -> !isnan(x)))
 sort!(func_stats_df, :score)
-sort!(func_stats_df, :difference)
-sort!(func_stats_df, :fold_change)
+# sort!(func_stats_df, :difference)
+# sort!(func_stats_df, :fold_change)
 
+n_to_collect = ceil(Int64, (nrow(func_stats_df)*0.015)/2.0)
+selected_functions = extremes(func_stats_df.function_name, n_to_collect)
 ```
 
 ## Computing each taxa's contribution to each genefunction on each age range
