@@ -25,14 +25,13 @@ using StableRNGs
 ### Configurable parameters
 ```julia
 master_colors = Dict(
-    "ECHO" => "purple",
     "ECHO-RESONANCE" => "purple",
     "1kDLEAP-GERMINA" => "blue",
-    "1kDLEAP-CORK" => "orange",
     "1kDLEAP-COMBINE" => "orange",
     "1kDLEAP-KHULA" => "red",
     "1kDLEAP-M4EFAD" => "darkgreen",
-    "DIABIMMUNE" => "lightblue",
+    "CMD-OTHER" => "lightblue",
+    "CMD-DIABIMMUNE" => "lightblue",
     "CMD" => "lightblue"
 )
 
