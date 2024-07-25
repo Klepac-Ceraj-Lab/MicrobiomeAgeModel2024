@@ -289,9 +289,9 @@ function reformat_taxa(ttaxa::String, imptab::DataFrame)
     sn = sign(subset(imptab, :variable => x -> x .== ttaxa).correl[1])
     ttaxa = replace(ttaxa, "_" => " ")
     if sn == +1.0
-        return(rich(ttaxa, "   ", rich("▶"; color = :blue)))
+        return(rich(ttaxa, "   ", rich("▶ "; color = :blue)))
     else
-        return(rich(ttaxa, "   ", rich("◀"; color = :red)))
+        return(rich(ttaxa, "   ", rich("◀ "; color = :red)))
     end
 end
 
