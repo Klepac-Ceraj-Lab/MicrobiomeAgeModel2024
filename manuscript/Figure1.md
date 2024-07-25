@@ -278,7 +278,7 @@ image!(axC, fig1_panelC)
 
 ## PERMANOVAS
 ```julia
-spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-2]), dims=1)
+spedm = Distances.pairwise(BrayCurtis(), Matrix(combined_inputs[:, 11:end-3]), dims=1)
 
 lt4idx = combined_inputs.ageMonths .< 4.0
 lt8idx = combined_inputs.ageMonths .< 8.0
