@@ -76,6 +76,7 @@ filtered_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(filtered_input
 subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness should be at least 1.
 select!(filtered_inputs, Not(:richness))
 
+CSV.write(joinpath(outdir, "combined_inputs.csv"), filtered_inputs)
 CSV.write("manuscript/final_manuscript_inputs.csv", filtered_inputs)
 ```
 
