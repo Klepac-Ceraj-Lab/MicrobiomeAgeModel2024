@@ -1,0 +1,70 @@
+data_config_version = 0
+uuid = "57abca7e-d4bf-4fc6-973b-deb225dc848a"
+name = "MicrobiomeAgeModel2024-Local"
+plugins = ["store", "defaults", "memorise"]
+
+[config.defaults.storage._]
+checksum = "auto"
+
+[[cv_results]]
+uuid = "f164e1ee-2dce-4d60-a9e9-3cdfa2370a30"
+description = "asdhasdh"
+
+    [[cv_results.storage]]
+    driver = "filesystem"
+    checksum = "k12:921311c80b222355b05dee5557b48aba"
+    path = "data/AgeModel_FullCV_Results.jld2"
+
+    [[cv_results.loader]]
+    driver = "jld2"
+
+[[ec_profiles]]
+uuid = "a115f47d-ccb8-4d9b-b6ee-92e5b7e8be00"
+description = "asdasd"
+
+    [[ec_profiles.storage]]
+    driver = "filesystem"
+    checksum = "k12:a6500791ddb7d63e9af54ba901869835"
+    path = "data/ecs.arrow"
+
+    [[ec_profiles.loader]]
+    driver = "arrow"
+
+[[ecs_metadata]]
+uuid = "b06e04bd-3e82-409d-bd42-ddb7a0d6c045"
+description = "asdasdasd"
+
+    [[ecs_metadata.storage]]
+    driver = "filesystem"
+    checksum = "k12:5657f34c557a6f39eb676bf69a5546a6"
+    path = "data/ecs_metadata.csv"
+
+    [[ecs_metadata.loader]]
+    driver = "csv"
+
+[[filtered_taxonomic_inputs]]
+uuid = "8e87fb2e-b3c2-42af-ba7f-6cc888e59c61"
+description = "temp2"
+
+    [[filtered_taxonomic_inputs.storage]]
+    driver = "filesystem"
+    checksum = "k12:67f043546a35013f16aaa1c181cca2c1"
+    path = "data/filtered_taxonomic_inputs.csv"
+
+    [[filtered_taxonomic_inputs.loader]]
+    driver = "csv"
+
+[[full_taxonomic_inputs]]
+uuid = "f43d4ce9-8a46-4ef1-b3a5-b6b9baa7e49f"
+description = "temp"
+
+    [[full_taxonomic_inputs.storage]]
+    driver = "filesystem"
+    checksum = "k12:b8804c79cb4d992e880a5719de41f553"
+    path = "data/full_taxonomic_inputs.csv.gz"
+
+    [[full_taxonomic_inputs.loader]]
+    driver = "csv"
+
+        [full_taxonomic_inputs.loader.args]
+        stringtype = "String"

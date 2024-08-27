@@ -1,0 +1,63 @@
+data_config_version = 0
+uuid = "5cc0b895-aa2e-4cb9-8aeb-11faacddb23d"
+name = "MicrobiomeAgeModel2024-AWS"
+plugins = ["store", "defaults", "memorise"]
+
+[config.defaults.storage._]
+checksum = "auto"
+
+[[cv_results]]
+uuid = "a679303d-adaf-4705-be51-5951d8ee42c7"
+description = "uytuiio"
+
+    [[cv_results.storage]]
+    driver = "web"
+    url = "https://s3.us-east-1.amazonaws.com/vkc.microbiomeagemodel2024-data/AgeModel_FullCV_Results.jld2?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQMA6PZ6B57RUJ7SN%2F20240827%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240827T192144Z&X-Amz-Expires=3600000&X-Amz-SignedHeaders=host&X-Amz-Signature=617552ad6062bb3f901dd57402f76efa81378cbca01e72d991bc613c726932dd"
+
+    [[cv_results.loader]]
+    driver = "jld2"
+
+[[ec_profiles]]
+uuid = "522e9f46-a978-4963-b9df-fe2546ecf86d"
+
+    [[ec_profiles.storage]]
+    driver = "web"
+    url = "https://s3.us-east-1.amazonaws.com/vkc.microbiomeagemodel2024-data/ecs.arrow?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQMA6PZ6B57RUJ7SN%2F20240827%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240827T192105Z&X-Amz-Expires=3600000&X-Amz-SignedHeaders=host&X-Amz-Signature=a7b4a2563edc1c2e71450ce6775e56ddabc1b0c6f7ebf612fce43efe788a0ea7"
+
+    [[ec_profiles.loader]]
+    driver = "arrow"
+
+[[ecs_metadata]]
+uuid = "c63fc09f-2627-4362-ae9a-983a10a11176"
+description = "ertrtytry"
+
+    [[ecs_metadata.storage]]
+    driver = "web"
+    url = "https://s3.us-east-1.amazonaws.com/vkc.microbiomeagemodel2024-data/ecs_metadata.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQMA6PZ6B57RUJ7SN%2F20240827%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240827T191955Z&X-Amz-Expires=3600000&X-Amz-SignedHeaders=host&X-Amz-Signature=2c36e3480180a8b4a18164eba4be179c81bf22b5a475c5194fe78eb61aa44461"
+
+    [[ecs_metadata.loader]]
+    driver = "csv"
+
+[[filtered_taxonomic_inputs]]
+uuid = "9d6c790d-c6fc-4ec9-9f98-9906a85263c9"
+description = "asdf"
+
+    [[filtered_taxonomic_inputs.storage]]
+    driver = "web"
+    url = "https://s3.us-east-1.amazonaws.com/vkc.microbiomeagemodel2024-data/filtered_taxonomic_inputs.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQMA6PZ6B57RUJ7SN%2F20240827%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240827T191922Z&X-Amz-Expires=3600000&X-Amz-SignedHeaders=host&X-Amz-Signature=577ed91491e7910417ee0b5479138a2710782c2ae065125be96c35bcec4bb5a6"
+
+    [[filtered_taxonomic_inputs.loader]]
+    driver = "csv"
+
+[[full_taxonomic_inputs]]
+uuid = "6bac67dd-dedf-42d4-8593-aa9472be1c20"
+description = "asdfg"
+
+    [[full_taxonomic_inputs.storage]]
+    driver = "web"
+    checksum = "k12:b8804c79cb4d992e880a5719de41f553"
+    url = "https://s3.us-east-1.amazonaws.com/vkc.microbiomeagemodel2024-data/full_taxonomic_inputs.csv.gz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQMA6PZ6B57RUJ7SN%2F20240827%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240827T191628Z&X-Amz-Expires=3600000&X-Amz-SignedHeaders=host&X-Amz-Signature=f73faa47bb93e1e39dd640bdfcdb716547bb142227820edcbb2831a3c7b84fb0"
+
+    [[full_taxonomic_inputs.loader]]
+    driver = "chain"
+    loaders = ["gzip", "csv"]
