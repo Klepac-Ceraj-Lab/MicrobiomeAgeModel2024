@@ -1,4 +1,7 @@
 /Manifest.toml
 /.CondaPkg
+/notebooks/diabetes
+/notebooks/isolate_ecs
 /notebooks/read_counts
 /*.jld
+data/*
