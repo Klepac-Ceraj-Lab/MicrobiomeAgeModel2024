@@ -1,5 +1,8 @@
 module MicrobiomeAgeModel2024
 
-# Write your package code here.
+    include("setup.jl")
 
+    export master_colors
+    export setup_outdir
+    
 end
