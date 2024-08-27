@@ -20,27 +20,21 @@ using CategoricalArrays
 using GLM
 using StatsBase
 using StableRNGs
+using CSV
+using DataToolkit
+using MicrobiomeAgeModel2024
 ```
 
-### Configurable parameters
+### Configurable parameters and notebook set-up
 ```julia
-master_colors = Dict(
-    "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-GERMINA" => "blue",
-    "1kDLEAP-COMBINE" => "orange",
-    "1kDLEAP-KHULA" => "red",
-    "1kDLEAP-M4EFAD" => "darkgreen",
-    "CMD-OTHER" => "lightblue",
-    "CMD-DIABIMMUNE" => "lightblue",
-    "CMD" => "lightblue"
-)
-
-experiment_name = "2024AgeModelManuscript"
-outdir = joinpath(pwd(), "results", experiment_name)
-figdir = joinpath(outdir, "figures")
-deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
+```
+#### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
+```julia
+# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+# DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
 ## Loading data
@@ -48,7 +42,7 @@ presence_absence = false # This argument will control whether the model will be 
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
+combined_inputs = d"full_taxonomic_inputs"
 combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
 ```
 
@@ -103,7 +97,7 @@ table1 = combine(
     :ageMonths => ( x -> "$(round(mean(x); digits = 2)) ($(round(Statistics.std(x); digits = 2)))" ) => :Formatted_Mean_Std,
     )
 @show sort!(table1, :study_name)
-CSV.write("manuscript/Table1.csv", table1)
+CSV.write(joinpath(outdir, "Table1.csv"), table1)
 ```
 
 # Creating Master Figure 1
@@ -422,11 +416,11 @@ colb = Colorbar(DE_Subfig[1, 3], scE, tellheight = false, tellwidth = true, heig
 
 ## Add labels
 ```julia
-Label(AB_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (-15, -15, -25, 0), halign = :right, alignmode = Inside())
-Label(AB_Subfig[3, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (-15, -15, -15, 0), halign = :right, alignmode = Inside())
-Label(C_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0, 5, -25, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 1, TopLeft()], "D", fontsize = 22, font = :bold, padding = (-15, -15, -40, 0), halign = :right, alignmode = Inside())
-Label(DE_Subfig[1, 2, TopLeft()], "E", fontsize = 22, font = :bold, padding = (-15, -20, -40, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[1, 1, TopLeft()], "a", fontsize = 22, font = :bold, padding = (-15, -15, -25, 0), halign = :right, alignmode = Inside())
+Label(AB_Subfig[3, 1, TopLeft()], "b", fontsize = 22, font = :bold, padding = (-15, -15, -15, 0), halign = :right, alignmode = Inside())
+Label(C_Subfig[1, 1, TopLeft()], "c", fontsize = 22, font = :bold, padding = (0, 5, -25, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 1, TopLeft()], "d", fontsize = 22, font = :bold, padding = (-15, -15, -40, 0), halign = :right, alignmode = Inside())
+Label(DE_Subfig[1, 2, TopLeft()], "e", fontsize = 22, font = :bold, padding = (-15, -20, -40, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
@@ -460,7 +454,7 @@ figure1_master
 ```julia
 supp_figure1_master = Figure(; size = (1000, 800))
 
-i = 0
+let i = 0
 
 for rrow in 1:3
     for ccol in 1:2
@@ -492,13 +486,14 @@ for rrow in 1:3
         )
     end
 end
+end
 
-Label(supp_figure1_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
-Label(supp_figure1_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
-Label(supp_figure1_master[2, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
-Label(supp_figure1_master[2, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
-Label(supp_figure1_master[3, 1, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
-Label(supp_figure1_master[3, 2, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[1, 1, TopLeft()], "a", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[1, 2, TopLeft()], "b", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 1, TopLeft()], "c", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[2, 2, TopLeft()], "d", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 1, TopLeft()], "e", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
+Label(supp_figure1_master[3, 2, TopLeft()], "f", fontsize = 22, font = :bold, padding = (0,40,-10,0), halign = :right, alignmode = Inside())
 
 save(joinpath(outdir, "figures", "FigureS1.png"), supp_figure1_master)
 save(joinpath(outdir, "figures", "FigureS1.eps"), supp_figure1_master)

@@ -24,14 +24,21 @@ using StatsBase
 using StableRNGs
 using Polynomials
 using Colors
+using CSV
+using DataToolkit
+using MicrobiomeAgeModel2024
 ```
 
-### Configurable parameters
+### Configurable parameters and notebook set-up
 ```julia
-experiment_name = "2024AgeModelManuscript"
-outdir = joinpath(pwd(), "results", experiment_name)
-figdir = joinpath(outdir, "figures")
-deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
+```
+#### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
+```julia
+# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+# DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
 ## Helper functions
@@ -43,8 +50,8 @@ function myfeaturefunc(s::String)
     genefunction(s)
 end
 
-function myload(::ECProfiles; timepoint_metadata = load(Metadata()))
-    comm = Leap.read_arrow(inputfiles("ecs.arrow"); featurefunc = myfeaturefunc)
+function myload(::ECProfiles, mypath; timepoint_metadata = load(Metadata()))
+    comm = Leap.read_arrow(mypath; featurefunc = myfeaturefunc)
     insert!(comm, timepoint_metadata; namecol=:sample)
     return comm[:, timepoint_metadata.sample]
 end
@@ -52,18 +59,19 @@ end
 
 ## Loading data
 ```julia
-JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
+regression_Age_FullCV = d"cv_results"["regression_Age_FullCV"]
 taxonomic_profiles = regression_Age_FullCV.original_df
 
-functional_mdata = @chain taxonomic_profiles begin
-    khula_bugvec = subset(:datasource => x -> x .== "1kDLEAP-KHULA")
-    select([:subject_id, :sample, :ageMonths, :visit])
-end 
+bins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+```
 
-functional_profiles = myload(ECProfiles(); timepoint_metadata = functional_mdata) # this can take a bit
+## Loading data
+```julia
+
+functional_mdata = d"ecs_metadata"
+functional_profiles = myload(ECProfiles(), open(dataset("ec_profiles"), DataToolkit.FilePath).path; timepoint_metadata = functional_mdata) # this can take a bit
 filtered_functional_profiles = relativeabundance(filter(f -> name(f) == "UNMAPPED" || hastaxon(f), functional_profiles))
 ecs_mdata = DataFrame(get(filtered_functional_profiles))
-CSV.write("ecs_metadata.csv", ecs_mdata)
 # samples_inrename = ecs_mdata.sample
 # samples_expected = functional_mdata.sample
 # @assert (all(samples_expected .∈ Ref(samples_inrename)) & all(samples_inrename .∈ Ref(samples_expected)))
@@ -83,7 +91,7 @@ longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeu
 ## Finding the important predictors
 ```julia
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
-hp_idx = 15
+hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)[1,1]
 
 importances_table = hpimportances(regression_Age_FullCV, hp_idx)
 importances_table.cumsum = cumsum(importances_table.weightedImportance)
@@ -99,7 +107,6 @@ important_bugs = onlyspecies_importances.variable
 ```
 
 ## Selecting samples and functions for functional analysis
-
 Important note: the sum of all taxon-assigned abundances will result on the abundance without the taxon.
 ```julia
 # filtered_functions = union( first.(split.(name.(features(filtered_functional_profiles)), '|')))
@@ -405,12 +412,12 @@ hm = heatmap!(axB, ordered_oldsamplemat[subset_taxa_plot, subset_function_plot],
 lgd = Legend(
     figure4_master, bbox = BBox(900, 1350, 50, 150),
     [
-        MarkerElement(marker = :circle, color = ec_colors['1'], markersize = 14),
-        MarkerElement(marker = :circle, color = ec_colors['2'], markersize = 14),
-        MarkerElement(marker = :circle, color = ec_colors['3'], markersize = 14),
-        MarkerElement(marker = :circle, color = ec_colors['4'], markersize = 14),
-        MarkerElement(marker = :circle, color = ec_colors['5'], markersize = 14),
-        MarkerElement(marker = :circle, color = ec_colors['6'], markersize = 14)
+        MarkerElement(marker = '▉', color = ec_colors['1'], markersize = 14),
+        MarkerElement(marker = '▉', color = ec_colors['2'], markersize = 14),
+        MarkerElement(marker = '▉', color = ec_colors['3'], markersize = 14),
+        MarkerElement(marker = '▉', color = ec_colors['4'], markersize = 14),
+        MarkerElement(marker = '▉', color = ec_colors['5'], markersize = 14),
+        MarkerElement(marker = '▉', color = ec_colors['6'], markersize = 14)
         ],
     [
         "EC 1. Oxidoreductases",
@@ -436,8 +443,8 @@ cbr = Colorbar(
     ticklabelsize = 18,
     vertical = false
 )
-Label(figure4_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
-Label(figure4_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
+Label(figure4_master[1, 1, TopLeft()], "a", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
+Label(figure4_master[1, 2, TopLeft()], "b", fontsize = 22, font = :bold, padding = (0, -15, 0, 0), halign = :right, alignmode = Inside())
 ```
 
 # Export Figure 4
@@ -446,60 +453,4 @@ save(joinpath(outdir, "figures", "Figure4.png"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
 figure4_master
-```
-
-# Data for Supplementary Figure 4
-```julia
-function myload(::UnirefProfiles; timepoint_metadata = load(Metadata()))
-    comm = Leap.read_arrow(inputfiles("genefamilies.arrow"); featurefunc = genefunction)
-    insert!(comm, timepoint_metadata; namecol=:sample)
-    return comm[:, timepoint_metadata.sample]
-end
-
-unirefs = myload(UnirefProfiles(); timepoint_metadata = functional_mdata) # this can take a bit
-
-previndex_ecs = vec(prevalence(filtered_functional_profiles[:, 1:length(samples(filtered_functional_profiles))]) .> 0.05)
-prevfiltered_ecs = filtered_functional_profiles[previndex_ecs, 1:length(samples(filtered_functional_profiles))]
-previndex_unirefs = vec(prevalence(unirefs[:, 1:length(samples(unirefs))]) .> 0.05)
-prevfiltered_unirefs = unirefs[previndex_unirefs, 1:length(samples(unirefs))]
-
-unirefs_n_features = unirefs.abundances.m
-unirefs_n_samples = unirefs.abundances.n
-unirefs_n_cells = unirefs_n_features * unirefs_n_samples
-unirefs_n_nzval = length(unirefs.abundances.nzval)
-unirefs_nzval_proportion = unirefs_n_nzval/unirefs_n_cells
-unirefs_featbysamp = unirefs_n_features / unirefs_n_samples
-unirefs_logfeatbysamp = log10(unirefs_featbysamp)
-
-prevfiltered_unirefs_n_features = prevfiltered_unirefs.abundances.m
-prevfiltered_unirefs_n_samples = prevfiltered_unirefs.abundances.n
-prevfiltered_unirefs_n_cells = prevfiltered_unirefs_n_features * prevfiltered_unirefs_n_samples
-prevfiltered_unirefs_n_nzval = length(prevfiltered_unirefs.abundances.nzval)
-prevfiltered_unirefs_nzval_proportion = prevfiltered_unirefs_n_nzval/prevfiltered_unirefs_n_cells
-prevfiltered_unirefs_featbysamp = prevfiltered_unirefs_n_features / prevfiltered_unirefs_n_samples
-prevfiltered_unirefs_logfeatbysamp = log10(prevfiltered_unirefs_featbysamp)
-
-ecs_n_features = filtered_functional_profiles.abundances.m
-ecs_n_samples = filtered_functional_profiles.abundances.n
-ecs_n_cells = ecs_n_features * ecs_n_samples
-ecs_n_nzval = length(filtered_functional_profiles.abundances.nzval)
-ecs_nzval_proportion = ecs_n_nzval/ecs_n_cells
-ecs_featbysamp = ecs_n_features / ecs_n_samples
-ecs_logfeatbysamp = log10(ecs_featbysamp)
-
-prevfiltered_ecs_n_features = prevfiltered_ecs.abundances.m
-prevfiltered_ecs_n_samples = prevfiltered_ecs.abundances.n
-prevfiltered_ecs_n_cells = prevfiltered_ecs_n_features * prevfiltered_ecs_n_samples
-prevfiltered_ecs_n_nzval = length(prevfiltered_ecs.abundances.nzval)
-prevfiltered_ecs_nzval_proportion = prevfiltered_ecs_n_nzval/prevfiltered_ecs_n_cells
-prevfiltered_ecs_featbysamp = prevfiltered_ecs_n_features / prevfiltered_ecs_n_samples
-prevfiltered_ecs_logfeatbysamp = log10(prevfiltered_ecs_featbysamp)
-
-taxa_n_features = ncol(taxonomic_profiles[:, 11:end-1])
-taxa_n_samples = nrow(taxonomic_profiles[:, 11:end-1])
-taxa_n_cells = taxa_n_features * taxa_n_samples
-taxa_n_nzval = sum(vec(Matrix(taxonomic_profiles[:, 11:end-1])) .> 0.0)
-taxa_nzval_proportion = taxa_n_nzval/taxa_n_cells
-taxa_featbysamp = taxa_n_features / taxa_n_samples
-taxa_logfeatbysamp = log10(taxa_featbysamp)
 ```

@@ -22,28 +22,21 @@ using GLM
 using StatsBase
 using StableRNGs
 using Polynomials
+using CSV
+using DataToolkit
+using MicrobiomeAgeModel2024
 ```
 
-### Configurable parameters
+### Configurable parameters and notebook set-up
 ```julia
-master_colors = Dict(
-    "ECHO" => "purple",
-    "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-GERMINA" => "blue",
-    "1kDLEAP-CORK" => "orange",
-    "1kDLEAP-COMBINE" => "orange",
-    "1kDLEAP-KHULA" => "red",
-    "1kDLEAP-M4EFAD" => "darkgreen",
-    "DIABIMMUNE" => "lightblue",
-    "CMD" => "lightblue"
-)
-
-experiment_name = "2024AgeModelManuscript"
-outdir = joinpath(pwd(), "results", experiment_name)
-figdir = joinpath(outdir, "figures")
-deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
+```
+#### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
+```julia
+# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+# DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
 ## Loading data
@@ -51,7 +44,7 @@ presence_absence = false # This argument will control whether the model will be 
 ### Loading taxonomic profiles from all the cohorts
 This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
 ```julia
-include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
+combined_inputs = d"full_taxonomic_inputs"
 combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
 ```
 
@@ -59,6 +52,7 @@ combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_input
 Computing samples and features before and after filters:
 
 ```julia
+age_bins = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0]
 prevalence_threshold = 0.05
 
 println("Table of combined inputs has $(nrow(combined_inputs)) samples and $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0) - 2) detected taxa before prevalence filtering")
@@ -77,7 +71,7 @@ subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness sh
 select!(filtered_inputs, Not(:richness))
 
 CSV.write(joinpath(outdir, "combined_inputs.csv"), filtered_inputs)
-CSV.write("manuscript/final_manuscript_inputs.csv", filtered_inputs)
+CSV.write(joinpath(outdir, "final_manuscript_inputs.csv"), filtered_inputs)
 ```
 
 ##  RF Model training
@@ -106,13 +100,35 @@ The following block of code will train the model on the combination of cohorts, 
 #         ntrees_range = [ 100, 200 ]
 #     )    
 # )
+regression_Age_FullCV = probe_regression_randomforest( ## Quick version
+    "regression_Age_FullCV",
+    filtered_inputs,
+    identity,
+    collect(11:ncol(combined_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    custom_input_group = nothing,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )    
+)
 # @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)
 # JLD2.@save joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 ```
 
 After the code is run at leat once, the results can then be loaded with:
 ```julia
-JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
+# JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
+CSV.write(joinpath(outdir, "AgeModel_predictions.csv"), predictions_to_plot(regression_Age_FullCV, filtered_inputs, age_bins, "val"; hp = 1))
 ```
 Assuming that `outdir` points to the same place where the model was stored when trained. If not, the argumetn can be customized accordingly. Remember that, per documentation, programatically-built filenames require explicit variable names on the macro to work. Loading variables into current scope requires literal file names.
 
@@ -120,15 +136,14 @@ Assuming that `outdir` points to the same place where the model was stored when 
 ```julia
 figure2_master = Figure(; size = (1200, 850))
 
-A_Subfig = GridLayout(figure2_master[1,1], alignmode=Inside()) 
+A_Subfig = GridLayout(figure2_master[1,1], alignmode=Inside())
 B_Subfig = GridLayout(figure2_master[1,2], alignmode=Inside())
 CDEFG_Subfig  = GridLayout(figure2_master[2,1:2], alignmode=Inside())
 ```
 
 ## Scatterplot
 ```julia
-age_bins = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0]
-hp_idx = 15 # checked with `sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)`
+hp_idx = 1 # checked with `sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)`
 
 axA = Axis(
     A_Subfig[1, 1];
@@ -342,10 +357,10 @@ List of features selected to plot according to Figure 2, Pabel B:
 ```julia
 features_to_plot = [
     "Shannon_index",
-    "Faecalibacterium_prausnitzii",
     "Dorea_formicigenerans",
-    "Bifidobacterium_breve",
-    "Escherichia_coli"
+    "Escherichia_coli",
+    "Faecalibacterium_prausnitzii",
+    "Bifidobacterium_breve"
 ]
 ```
 
@@ -444,13 +459,13 @@ end
 
 ## Add labels
 ```julia
-Label(A_Subfig[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (-5, 30, -20, 0), halign = :right, alignmode = Inside())
-Label(B_Subfig[1, 1, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, 220, -20, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 1, TopLeft()], "C", fontsize = 22, font = :bold, padding = (-5, 30, -5, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 2, TopLeft()], "D", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 3, TopLeft()], "E", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 4, TopLeft()], "F", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
-Label(CDEFG_Subfig[1, 5, TopLeft()], "G", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(A_Subfig[1, 1, TopLeft()], "a", fontsize = 22, font = :bold, padding = (-5, 30, -20, 0), halign = :right, alignmode = Inside())
+Label(B_Subfig[1, 1, TopLeft()], "b", fontsize = 22, font = :bold, padding = (0, 220, -20, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 1, TopLeft()], "c", fontsize = 22, font = :bold, padding = (-5, 30, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 2, TopLeft()], "d", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 3, TopLeft()], "e", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 4, TopLeft()], "f", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
+Label(CDEFG_Subfig[1, 5, TopLeft()], "g", fontsize = 22, font = :bold, padding = (0, 40, -5, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout

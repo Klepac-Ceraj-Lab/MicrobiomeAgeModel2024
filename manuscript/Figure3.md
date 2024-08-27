@@ -23,33 +23,26 @@ using GLM
 using StatsBase
 using StableRNGs
 using Polynomials
+using CSV
+using DataToolkit
+using MicrobiomeAgeModel2024
 ```
 
-### Configurable parameters
+### Configurable parameters and notebook set-up
 ```julia
-master_colors = Dict(
-    "ECHO" => "purple",
-    "ECHO-RESONANCE" => "purple",
-    "1kDLEAP-BRAINRISE" => "blue",
-    "1kDLEAP-CORK" => "orange",
-    "1kDLEAP-COMBINE" => "orange",
-    "1kDLEAP-KHULA" => "red",
-    "1kDLEAP-M4EFAD" => "darkgreen",
-    "DIABIMMUNE" => "lightblue",
-    "CMD" => "lightblue"
-)
-
-experiment_name = "2024AgeModelManuscript"
-outdir = joinpath(pwd(), "results", experiment_name)
-figdir = joinpath(outdir, "figures")
-deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
-isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will overwrite files already there.") : ( mkpath(outdir), mkpath(figdir), mkpath(deepdivemonodir), mkpath(deepdivecolordir) )
-presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
+```
+#### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
+```julia
+# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+# DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
 ## Loading data
 ```julia
-JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
+regression_Age_FullCV = d"cv_results"["regression_Age_FullCV"]
 taxonomic_profiles = regression_Age_FullCV.original_df
 
 bins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
@@ -311,9 +304,9 @@ Colorbar(figure3_master[1,4], hmA, label = "Prevalence",  ticks = 0.0:0.2:1.0, t
 
 ## Add labels
 ```julia
-Label(figure3_master[1, 1, TopLeft()], "A", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(figure3_master[1, 2, TopLeft()], "B", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
-Label(figure3_master[1, 3, TopLeft()], "C", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
+Label(figure3_master[1, 1, TopLeft()], "a", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
+Label(figure3_master[1, 2, TopLeft()], "b", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
+Label(figure3_master[1, 3, TopLeft()], "c", fontsize = 22, font = :bold, padding = (0, 5, 5, 0), halign = :right, alignmode = Inside())
 ```
 
 ## Fix layout
