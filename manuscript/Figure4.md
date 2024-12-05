@@ -154,7 +154,17 @@ sort!(func_stats_df, :score)
 # sort!(func_stats_df, :fold_change)
 
 n_to_collect = ceil(Int64, (nrow(func_stats_df)*0.015)/2.0)
-selected_functions = extremes(func_stats_df.function_name, n_to_collect)
+```
+
+... However, we need to also include the functions that have the same score as the last of each direction!
+```julia
+top_cutoff_score = func_stats_df[n_to_collect, "score"]
+selected_top_functions = subset(func_stats_df, :score => x -> x .<= top_cutoff_score).function_name
+
+bottom_cutoff_score = func_stats_df[end - n_to_collect - 1, "score"] ## -1 because we don't wanna count "NO_NAME"
+selected_bottom_functions = subset(func_stats_df, :score => x -> x .>= bottom_cutoff_score).function_name
+
+selected_functions = vcat(selected_top_functions, selected_bottom_functions)
 ```
 
 ## Computing each taxa's contribution to each genefunction on each age range
