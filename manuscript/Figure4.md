@@ -421,15 +421,22 @@ hm = heatmap!(axB, ordered_oldsamplemat[subset_taxa_plot, subset_function_plot],
 
 lgd = Legend(
     figure4_master, bbox = BBox(900, 1350, 50, 150),
-    [
+    [   MarkerElement(marker = '▲', color = :blue, markersize = 14),
+        MarkerElement(marker = '▼', color = :red, markersize = 14),
+        MarkerElement(marker = ' ', color = :white, markersize = 14),
+        MarkerElement(marker = ' ', color = :white, markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['1'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['2'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['3'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['4'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['5'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['6'], markersize = 14)
-        ],
+    ],
     [
+        "Taxa increase with age",
+        "Taxa decrease with age",
+        " ",
+        " ",
         "EC 1. Oxidoreductases",
         "EC 2. Transferases",
         "EC 3. Hydrolases",
