@@ -31,7 +31,7 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelRevisions")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
