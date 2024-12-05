@@ -452,5 +452,6 @@ Label(figure4_master[1, 2, TopLeft()], "b", fontsize = 22, font = :bold, padding
 save(joinpath(outdir, "figures", "Figure4.png"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
+save(joinpath(outdir, "figures", "Figure4.pdf"), figure4_master)
 figure4_master
 ```

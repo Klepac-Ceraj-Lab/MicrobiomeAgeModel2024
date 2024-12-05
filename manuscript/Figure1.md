@@ -259,6 +259,7 @@ Legend(
 save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.png"), fig)
 save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.eps"), fig)
 save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.svg"), fig)
+save(joinpath(outdir, "figures", "Figure1_PanelB_Piecharts.pdf"), fig)
 ```
 ![Samples Pie Chart](../results/2024AgeModelManuscript/figures/Figure1_PanelB_Piecharts.png)
 
@@ -447,6 +448,7 @@ rowsize!(AB_Subfig, 3, Relative(0.35))
 save(joinpath(outdir, "figures", "Figure1.png"), figure1_master)
 save(joinpath(outdir, "figures", "Figure1.eps"), figure1_master)
 save(joinpath(outdir, "figures", "Figure1.svg"), figure1_master)
+save(joinpath(outdir, "figures", "Figure1.pdf"), figure1_master)
 figure1_master
 ```
 
@@ -498,5 +500,6 @@ Label(supp_figure1_master[3, 2, TopLeft()], "f", fontsize = 22, font = :bold, pa
 save(joinpath(outdir, "figures", "FigureS1.png"), supp_figure1_master)
 save(joinpath(outdir, "figures", "FigureS1.eps"), supp_figure1_master)
 save(joinpath(outdir, "figures", "FigureS1.svg"), supp_figure1_master)
+save(joinpath(outdir, "figures", "FigureS1.pdf"), supp_figure1_master)
 supp_figure1_master
 ```

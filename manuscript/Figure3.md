@@ -322,5 +322,6 @@ colsize!(figure3_master.layout, 3, Relative(0.33))
 save(joinpath(outdir, "figures", "Figure3.png"), figure3_master)
 save(joinpath(outdir, "figures", "Figure3.eps"), figure3_master)
 save(joinpath(outdir, "figures", "Figure3.svg"), figure3_master)
+save(joinpath(outdir, "figures", "Figure3.pdf"), figure3_master)
 figure3_master
 ```

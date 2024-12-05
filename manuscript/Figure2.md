@@ -492,6 +492,7 @@ rowsize!(CDEFG_Subfig, 2, Relative(0.35))
 save(joinpath(outdir, "figures", "Figure2.png"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.eps"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.svg"), figure2_master)
+save(joinpath(outdir, "figures", "Figure2.pdf"), figure2_master)
 figure2_master
 ```
 
@@ -604,5 +605,6 @@ rowgap!(supp_figure2_master.layout, 5)
 save(joinpath(outdir, "figures", "FigureS2.png"), supp_figure2_master)
 save(joinpath(outdir, "figures", "FigureS2.eps"), supp_figure2_master)
 save(joinpath(outdir, "figures", "FigureS2.svg"), supp_figure2_master)
+save(joinpath(outdir, "figures", "FigureS2.pdf"), supp_figure2_master)
 supp_figure2_master
 ```
