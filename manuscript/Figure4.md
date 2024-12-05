@@ -378,7 +378,7 @@ manual_taxa_to_plot = [
 
 # subset_to_plot = collect(1:nfeat_toplot-1) # For debugging purposes, plot all species
 subset_taxa_plot = ordered_taxa .∈ Ref(manual_taxa_to_plot)
-subset_function_plot = 1:length(ordered_functions)-1
+subset_function_plot = findall(ordered_functions .!= "7.2.1.1: NO_NAME")
 ```
 
 # Creating Master Figure 4
