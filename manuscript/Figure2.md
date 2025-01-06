@@ -29,13 +29,13 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
 ```julia
-# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
-DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
 # DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
@@ -79,7 +79,7 @@ CSV.write(joinpath(outdir, "final_manuscript_inputs.csv"), filtered_inputs)
 ### Actual function for model training
 The following block of code will train the model on the combination of cohorts, performing crossvalidation and grid-search hyperparameter optimization. Training can take several hours if the hyperparameter grid is large. It is advised to train once and store the result on a `JLD2` object so it can be accessed with `JLD2.load`-like methods for downstream analysis and plotting. Hence, the block of code should be run only once per data update.
 ```julia
-# regression_Age_FullCV = probe_regression_randomforest(
+# regression_Age_FullCV = probe_regression_randomforest( ## code used during last step of hyperparameter tuning. Publicly released data includes results from this experiment.
 #     "regression_Age_FullCV",
 #     filtered_inputs,
 #     identity,
@@ -100,7 +100,7 @@ The following block of code will train the model on the combination of cohorts, 
 #         ntrees_range = [ 100, 200 ]
 #     )    
 # )
-regression_Age_FullCV = probe_regression_randomforest( ## Quick version
+regression_Age_FullCV = probe_regression_randomforest( ## Quick version that performs regression with the final hyperparameter set. 
     "regression_Age_FullCV",
     filtered_inputs,
     identity,
@@ -130,7 +130,7 @@ After the code is run at leat once, the results can then be loaded with:
 # JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 CSV.write(joinpath(outdir, "AgeModel_predictions.csv"), predictions_to_plot(regression_Age_FullCV, filtered_inputs, age_bins, "val"; hp = 1))
 ```
-Assuming that `outdir` points to the same place where the model was stored when trained. If not, the argumetn can be customized accordingly. Remember that, per documentation, programatically-built filenames require explicit variable names on the macro to work. Loading variables into current scope requires literal file names.
+Assuming that `outdir` points to the same place where the model was stored when trained. If not, the argument can be customized accordingly. Remember that, per documentation, programatically-built filenames require explicit variable names on the macro to work. Loading variables into current scope requires literal file names.
 
 # Creating Master Figure 2
 ```julia
@@ -143,7 +143,7 @@ CDEFG_Subfig  = GridLayout(figure2_master[2,1:2], alignmode=Inside())
 
 ## Scatterplot
 ```julia
-hp_idx = 1 # checked with `sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)`
+hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean).Hyperpar_Idx[1]
 
 axA = Axis(
     A_Subfig[1, 1];
@@ -349,6 +349,9 @@ axislegend(axB,     [
     margin=(20,20,20,20), #right, left, bottom, top
     alignmode = Inside()
 )
+
+## Export source data for Figure 2B
+CSV.write(joinpath(outdir, "SourceData_Fig2B.csv"), importances_table)
 ```
 
 ## Figure 2, Panels C-G - Scatter plots
@@ -492,6 +495,7 @@ rowsize!(CDEFG_Subfig, 2, Relative(0.35))
 save(joinpath(outdir, "figures", "Figure2.png"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.eps"), figure2_master)
 save(joinpath(outdir, "figures", "Figure2.svg"), figure2_master)
+save(joinpath(outdir, "figures", "Figure2.pdf"), figure2_master)
 figure2_master
 ```
 
@@ -604,5 +608,13 @@ rowgap!(supp_figure2_master.layout, 5)
 save(joinpath(outdir, "figures", "FigureS2.png"), supp_figure2_master)
 save(joinpath(outdir, "figures", "FigureS2.eps"), supp_figure2_master)
 save(joinpath(outdir, "figures", "FigureS2.svg"), supp_figure2_master)
+save(joinpath(outdir, "figures", "FigureS2.pdf"), supp_figure2_master)
 supp_figure2_master
+
+## Export source data for Figure 2C-G
+
+CSV.write(
+    joinpath(outdir, "SourceData_Fig2CDEFG.csv"),
+    select(combined_inputs, ["sample", "datasource", "datacolor", "ageMonths",  importances_table.variable[1:nfeat_toplot]... ])   
+)
 ```

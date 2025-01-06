@@ -166,6 +166,39 @@ m4efad_pre_data = @chain CSV.read("/home/guilherme/Repos/Leap/ext_data/M4EFaD/at
     dropmissing()
 end
 
+#####
+# EnnisD (Moran's Test Data)
+#####
+ennis_sradata = @chain CSV.read("/tempstore/storage/guilherme/cmd_sequences/studies/EnnisD_2024/metadata/SraRunTable.txt", DataFrame; stringtype = String) begin
+    select(["Run", "Sample Name"])
+end
+
+ennis_mdata = @chain CSV.read("/tempstore/storage/guilherme/cmd_sequences/studies/EnnisD_2024/metadata/Ennis2024_AgeModel_Metadata.csv", DataFrame; stringtype = String) begin
+    rename!(:AgeMonths => :ageMonths)
+    transform!(:StudyInternalID => (x -> map(y -> split(y, "_")[1], x)) => :subject_id; renamecols = false)
+    subset(:ageMonths => x -> 2.0 .< x .< 18.0)
+    transform!(:subject_id => (x -> "ennis-" .* string.(x)) => :subject_id)
+    innerjoin(ennis_sradata, _ , on = "Sample Name" => "StudyInternalID" )
+    select!(Not("Sample Name"))
+    rename!(:Run => :sample)
+    insertcols!(1, :study_name => "EnnisD_2024")
+    insertcols!(2, :westernized_cat => 1)    
+    insertcols!(2, :datasource => "ENNIS")
+    insertcols!(2, :datacolor => "cyan")
+    insertcols!(2, :visit => "NA")
+    insertcols!(2, :site => "ISR")
+end
+ennis_profiles = @chain Leap.load_raw_metaphlan("/tempstore/storage/guilherme/cmd_sequences/studies/EnnisD_2024/metaphlan";replace_pattern = r"\w+_profile") begin
+    filter(t-> !ismissing(taxrank(t)), _[:, samplenames(_)])
+    filter(t-> taxrank(t) == :species, _[:, samplenames(_)])
+    comm2wide()
+    select(Not([:sample, :file]))
+end
+
+ennis_pre_data = @chain innerjoin(ennis_mdata, ennis_profiles, on = :sample => :sample_base ) begin
+    dropmissing()
+end
+
 ### Removing MW and MAM samples
 ## Removing MW and MAM samples
 subset!(khula_pre_data, :site => x -> x .!= "Malawi")
@@ -173,7 +206,7 @@ healthy_m4efad_subjects = filter(x -> occursin(r"LCC2", x), m4efad_pre_data.subj
 subset!(m4efad_pre_data, :subject_id => x -> x .∈ Ref(healthy_m4efad_subjects))
 
 ### Building the pooled dataset
-combined_inputs = @chain vcat(echo_pre_data, brainrise_pre_data, combine_pre_data, khula_pre_data, m4efad_pre_data, diabimmune_pre_data, cmd_pre_data; cols=:union) begin
+combined_inputs = @chain vcat(echo_pre_data, brainrise_pre_data, combine_pre_data, khula_pre_data, m4efad_pre_data, diabimmune_pre_data, cmd_pre_data, ennis_pre_data; cols=:union) begin
     transform!(_, names(_) .=> (x -> replace(x, missing => 0.0)) .=> names(_); renamecols=false)
 end
 

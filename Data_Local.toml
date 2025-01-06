@@ -42,6 +42,9 @@ description = "asdasdasd"
     [[ecs_metadata.loader]]
     driver = "csv"
 
+        [ecs_metadata.loader.args]
+        stringtype = "String"
+
 [[filtered_taxonomic_inputs]]
 uuid = "8e87fb2e-b3c2-42af-ba7f-6cc888e59c61"
 description = "temp2"
@@ -53,6 +56,9 @@ description = "temp2"
 
     [[filtered_taxonomic_inputs.loader]]
     driver = "csv"
+
+        [filtered_taxonomic_inputs.loader.args]
+        stringtype = "String"
 
 [[full_taxonomic_inputs]]
 uuid = "f43d4ce9-8a46-4ef1-b3a5-b6b9baa7e49f"
@@ -67,4 +73,19 @@ description = "temp"
     driver = "csv"
 
         [full_taxonomic_inputs.loader.args]
+        stringtype = "String"
+
+[[inputs_with_testdata]]
+uuid = "6a2aa2f7-cd65-4a08-ab45-3b777840dcda"
+description = "Complete dataset for LOOCV including EnnisD_2024 EXTERNAL TEST data"
+
+    [[inputs_with_testdata.storage]]
+    driver = "filesystem"
+    checksum = "k12:d7eb2d66c296936c2370d197af57ff1d"
+    path = "data/inputs_with_testdata.csv"
+
+    [[inputs_with_testdata.loader]]
+    driver = "csv"
+
+        [inputs_with_testdata.loader.args]
         stringtype = "String"

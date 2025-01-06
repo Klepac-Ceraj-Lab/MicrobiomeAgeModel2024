@@ -31,13 +31,13 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "MicrobiomeAge2024_Reproduction")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
 ```julia
-# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
-DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
 # DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
@@ -45,16 +45,18 @@ DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to us
 ```julia
 extremes(v::AbstractVector, n::Integer) = vcat(v[1:n], v[(end-n+1):end])
 
-function myfeaturefunc(s::String)
-    s = replace(s, r"\|g__\w+\."=>"|")
-    genefunction(s)
-end
+## The machine-specific functions below are superseded by the machine-agnostic DataToolkit collection and are stored here for future reference.
 
-function myload(::ECProfiles, mypath; timepoint_metadata = load(Metadata()))
-    comm = Leap.read_arrow(mypath; featurefunc = myfeaturefunc)
-    insert!(comm, timepoint_metadata; namecol=:sample)
-    return comm[:, timepoint_metadata.sample]
-end
+# function myfeaturefunc(s::String)
+#     s = replace(s, r"\|g__\w+\."=>"|")
+#     genefunction(s)
+# end
+
+# function myload(::ECProfiles, mypath; timepoint_metadata = load(Metadata()))
+#     comm = Leap.read_arrow(mypath; featurefunc = myfeaturefunc)
+#     insert!(comm, timepoint_metadata; namecol=:sample)
+#     return comm[:, timepoint_metadata.sample]
+# end
 ```
 
 ## Loading data
@@ -90,8 +92,7 @@ longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeu
 
 ## Finding the important predictors
 ```julia
-# @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
-hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)[1,1]
+hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean).Hyperpar_Idx[1]
 
 importances_table = hpimportances(regression_Age_FullCV, hp_idx)
 importances_table.cumsum = cumsum(importances_table.weightedImportance)
@@ -154,7 +155,17 @@ sort!(func_stats_df, :score)
 # sort!(func_stats_df, :fold_change)
 
 n_to_collect = ceil(Int64, (nrow(func_stats_df)*0.015)/2.0)
-selected_functions = extremes(func_stats_df.function_name, n_to_collect)
+```
+
+... However, we need to also include the functions that have the same score as the last of each direction!
+```julia
+top_cutoff_score = func_stats_df[n_to_collect, "score"]
+selected_top_functions = subset(func_stats_df, :score => x -> x .<= top_cutoff_score).function_name
+
+bottom_cutoff_score = func_stats_df[end - n_to_collect - 1, "score"] ## -1 because we don't wanna count "NO_NAME"
+selected_bottom_functions = subset(func_stats_df, :score => x -> x .>= bottom_cutoff_score).function_name
+
+selected_functions = vcat(selected_top_functions, selected_bottom_functions)
 ```
 
 ## Computing each taxa's contribution to each genefunction on each age range
@@ -277,7 +288,7 @@ vatanen2018_ECs = [
 absolute_differences_mat = abs.(ordered_oldsamplemat .- ordered_youngsamplemat)
 @show func_stats_df
 
-println("Number of functions from Vatanen2018 on our list: $(sum(ordered_functions .∈ Ref(vatanen2018_ECs))) or $(round(100*sum(ordered_functions .∈ Ref(vatanen2018_ECs))/length(vatanen2018_ECs); digits = 2))")
+println("Number of functions from Vatanen2018 on our list: $(sum(ordered_functions .∈ Ref(vatanen2018_ECs))) or $(round(100*sum(ordered_functions .∈ Ref(vatanen2018_ECs))/length(vatanen2018_ECs); digits = 2))%")
 
 youngclustbugs = [ "Bifidobacterium_longum", "Bifidobacterium_breve", "Escherichia_coli", "Ruminococcus_gnavus" ]
 oldclustbugs = ["Dorea_longicatena", "Blautia_obeum", "Blautia_wexlerae", "Anaerostipes_hadrus", "Faecalibacterium_prausnitzii", "Prevotella_copri"]
@@ -368,7 +379,7 @@ manual_taxa_to_plot = [
 
 # subset_to_plot = collect(1:nfeat_toplot-1) # For debugging purposes, plot all species
 subset_taxa_plot = ordered_taxa .∈ Ref(manual_taxa_to_plot)
-subset_function_plot = 1:length(ordered_functions)-1
+subset_function_plot = findall(ordered_functions .!= "7.2.1.1: NO_NAME")
 ```
 
 # Creating Master Figure 4
@@ -411,15 +422,22 @@ hm = heatmap!(axB, ordered_oldsamplemat[subset_taxa_plot, subset_function_plot],
 
 lgd = Legend(
     figure4_master, bbox = BBox(900, 1350, 50, 150),
-    [
+    [   MarkerElement(marker = '▲', color = :blue, markersize = 14),
+        MarkerElement(marker = '▼', color = :red, markersize = 14),
+        MarkerElement(marker = ' ', color = :white, markersize = 14),
+        MarkerElement(marker = ' ', color = :white, markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['1'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['2'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['3'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['4'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['5'], markersize = 14),
         MarkerElement(marker = '▉', color = ec_colors['6'], markersize = 14)
-        ],
+    ],
     [
+        "Taxa increase with age",
+        "Taxa decrease with age",
+        " ",
+        " ",
         "EC 1. Oxidoreductases",
         "EC 2. Transferases",
         "EC 3. Hydrolases",
@@ -452,5 +470,23 @@ Label(figure4_master[1, 2, TopLeft()], "b", fontsize = 22, font = :bold, padding
 save(joinpath(outdir, "figures", "Figure4.png"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
+save(joinpath(outdir, "figures", "Figure4.pdf"), figure4_master)
 figure4_master
+
+## Export Source Data for Figure 4
+CSV.write(
+    joinpath(outdir, "SourceData_Fig4A.csv"),
+    hcat(
+        DataFrame(:EC => ordered_functions[subset_function_plot] ),
+        DataFrame(ordered_youngsamplemat[subset_taxa_plot, subset_function_plot]', ordered_taxa[subset_taxa_plot])
+    )
+)
+
+CSV.write(
+    joinpath(outdir, "SourceData_Fig4B.csv"),
+    hcat(
+        DataFrame(:EC => ordered_functions[subset_function_plot] ),
+        DataFrame(ordered_oldsamplemat[subset_taxa_plot, subset_function_plot]', ordered_taxa[subset_taxa_plot])
+    )
+)
 ```

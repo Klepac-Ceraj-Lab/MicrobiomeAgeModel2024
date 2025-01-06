@@ -5,3 +5,4 @@
 /notebooks/read_counts
 /*.jld
 data/*
+results/*
