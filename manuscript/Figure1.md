@@ -27,13 +27,13 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelRevisions")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
 ```julia
-# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
-DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
 # DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
@@ -202,6 +202,9 @@ for bin in bins
         width = 1.2
     )
 end
+
+## Export source data
+CSV.write(joinpath(outdir, "SourceData_Fig1B01.csv"), select(combined_inputs, [:study_name, :datasource, :ageMonths, :datacolor]))
 ```
 
 ## Figure 1, Panel B - Pie chart
@@ -413,6 +416,9 @@ annotations!(
 )
 
 colb = Colorbar(DE_Subfig[1, 3], scE, tellheight = false, tellwidth = true, height = 360, width = 10, label = "Age in Months", alignmode = Outside())
+
+## Export Source Data for Figure 1 D-E
+CSV.write(joinpath(outdir, "SourceData_Fig1DE.csv"), DataFrame("MDS1" => MDS_columns[:,1], "MDS2" => MDS_columns[:,2], "ageMonths" => combined_inputs.ageMonths, "datasource" => combined_inputs.datasource, "datacolor" => combined_inputs.datacolor))
 ```
 
 ## Add labels

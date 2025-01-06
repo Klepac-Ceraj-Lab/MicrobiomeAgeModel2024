@@ -31,13 +31,13 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelRevisions")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
 ```julia
-# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
-DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
 # DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
@@ -45,16 +45,18 @@ DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to us
 ```julia
 extremes(v::AbstractVector, n::Integer) = vcat(v[1:n], v[(end-n+1):end])
 
-function myfeaturefunc(s::String)
-    s = replace(s, r"\|g__\w+\."=>"|")
-    genefunction(s)
-end
+## The machine-specific functions below are superseded by the machine-agnostic DataToolkit collection and are stored here for future reference.
 
-function myload(::ECProfiles, mypath; timepoint_metadata = load(Metadata()))
-    comm = Leap.read_arrow(mypath; featurefunc = myfeaturefunc)
-    insert!(comm, timepoint_metadata; namecol=:sample)
-    return comm[:, timepoint_metadata.sample]
-end
+# function myfeaturefunc(s::String)
+#     s = replace(s, r"\|g__\w+\."=>"|")
+#     genefunction(s)
+# end
+
+# function myload(::ECProfiles, mypath; timepoint_metadata = load(Metadata()))
+#     comm = Leap.read_arrow(mypath; featurefunc = myfeaturefunc)
+#     insert!(comm, timepoint_metadata; namecol=:sample)
+#     return comm[:, timepoint_metadata.sample]
+# end
 ```
 
 ## Loading data
@@ -90,8 +92,7 @@ longitudinal_samples = innerjoin(t1_samples, t3_samples, on = :subject_id, makeu
 
 ## Finding the important predictors
 ```julia
-# @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
-hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean)[1,1]
+hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean).Hyperpar_Idx[1]
 
 importances_table = hpimportances(regression_Age_FullCV, hp_idx)
 importances_table.cumsum = cumsum(importances_table.weightedImportance)
@@ -287,7 +288,7 @@ vatanen2018_ECs = [
 absolute_differences_mat = abs.(ordered_oldsamplemat .- ordered_youngsamplemat)
 @show func_stats_df
 
-println("Number of functions from Vatanen2018 on our list: $(sum(ordered_functions .∈ Ref(vatanen2018_ECs))) or $(round(100*sum(ordered_functions .∈ Ref(vatanen2018_ECs))/length(vatanen2018_ECs); digits = 2))")
+println("Number of functions from Vatanen2018 on our list: $(sum(ordered_functions .∈ Ref(vatanen2018_ECs))) or $(round(100*sum(ordered_functions .∈ Ref(vatanen2018_ECs))/length(vatanen2018_ECs); digits = 2))%")
 
 youngclustbugs = [ "Bifidobacterium_longum", "Bifidobacterium_breve", "Escherichia_coli", "Ruminococcus_gnavus" ]
 oldclustbugs = ["Dorea_longicatena", "Blautia_obeum", "Blautia_wexlerae", "Anaerostipes_hadrus", "Faecalibacterium_prausnitzii", "Prevotella_copri"]
@@ -471,4 +472,21 @@ save(joinpath(outdir, "figures", "Figure4.eps"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.svg"), figure4_master)
 save(joinpath(outdir, "figures", "Figure4.pdf"), figure4_master)
 figure4_master
+
+## Export Source Data for Figure 4
+CSV.write(
+    joinpath(outdir, "SourceData_Fig4A.csv"),
+    hcat(
+        DataFrame(:EC => ordered_functions[subset_function_plot] ),
+        DataFrame(ordered_youngsamplemat[subset_taxa_plot, subset_function_plot]', ordered_taxa[subset_taxa_plot])
+    )
+)
+
+CSV.write(
+    joinpath(outdir, "SourceData_Fig4B.csv"),
+    hcat(
+        DataFrame(:EC => ordered_functions[subset_function_plot] ),
+        DataFrame(ordered_oldsamplemat[subset_taxa_plot, subset_function_plot]', ordered_taxa[subset_taxa_plot])
+    )
+)
 ```

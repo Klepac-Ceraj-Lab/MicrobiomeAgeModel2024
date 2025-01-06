@@ -30,13 +30,13 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelRevisions")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
 ```julia
-# DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
-DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
 # DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 ```
 
@@ -50,8 +50,7 @@ bins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 ## Finding the important predictors
 ```julia
-# @show sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean) # To check the nest hyperparameter index
-hp_idx = 15
+hp_idx = sort(report_regression_merits(regression_Age_FullCV), :Val_RMSE_mean).Hyperpar_Idx[1]
 
 importances_table = hpimportances(regression_Age_FullCV, hp_idx)
 importances_table.cumsum = cumsum(importances_table.weightedImportance)
@@ -232,13 +231,6 @@ figure3_master = Figure(; size = (1600, 1000))
 ## Plotting all the heatmaps
 
 ```julia
-# processed_bugnames = replace.(important_bugs[prevalence_order], "_" => " ")
-# split_bugnames = map(x -> split(x, " "), processed_bugnames)
-# split_bugnames[17][2] = "sp"
-# pushfirst!(split_bugnames[17], " ")
-# pushfirst!(split_bugnames[28], " ")
-# rejoined_bugnames = map( x -> (x[1][1] * ". " * join(x[2:end], " ")), split_bugnames)
-
 rejoined_bugnames = replace.(important_bugs[prevalence_order], "_" => " ")
 
 axA = Axis(
@@ -504,6 +496,31 @@ ylims!(axDend, (34.5, 0.5))
 
 lines!(axDend, Point2f.([[x[2],x[1]] for x in points]); color=:black)
 # lines!(axDend, Point2f.([[x[2],-x[1]] for x in points]); color=:black)
+
+## Exporting Source Data for Figure 3
+CSV.write(
+    joinpath(outdir, "SourceData_Fig3A.csv"),
+    hcat(
+        DataFrame(:variable => important_bugs[prevalence_order]),
+        DataFrame(cmd_prevalence_matrix[prevalence_order, :], ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"])
+    )
+)
+
+CSV.write(
+    joinpath(outdir, "SourceData_Fig3B.csv"),
+    hcat(
+        DataFrame(:variable => important_bugs[prevalence_order]),
+        DataFrame(echo_prevalence_matrix[prevalence_order, :], ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"])
+    )
+)
+
+CSV.write(
+    joinpath(outdir, "SourceData_Fig3C.csv"),
+    hcat(
+        DataFrame(:variable => important_bugs[prevalence_order]),
+        DataFrame(khula_prevalence_matrix[prevalence_order, :], ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"])
+    )
+)
 ```
 
 ## Add labels

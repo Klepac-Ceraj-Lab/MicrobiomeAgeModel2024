@@ -25,6 +25,8 @@ using StatsBase
 using StableRNGs
 using Polynomials
 using MLJ
+using DataToolkit
+using MicrobiomeAgeModel2024
 
 ### Configurable parameters
 master_colors = Dict(
@@ -40,7 +42,7 @@ master_colors = Dict(
     "ENNIS" => "navyblue"
 )
 
-experiment_name = "2024AgeModelRevisions"
+experiment_name = "2024AgeModelFinalSubmission"
 outdir = joinpath(pwd(), "results", experiment_name)
 figdir = joinpath(outdir, "figures")
 deepdivemonodir, deepdivecolordir = ( joinpath(figdir, "species_monocolor_scatterplots"), joinpath(figdir, "species_colored_scatterplots") )
@@ -48,225 +50,207 @@ isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will ov
 presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
 ## Loading data
 
-### Loading taxonomic profiles from all the cohorts
-## This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
-include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
-combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
+#### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+# DataToolkit.loadcollection!("./Data_AWS.toml")      ## Uncomment this line to use the datasets made available on the public AWS bucket
+# DataToolkit.loadcollection!("./Data_Dryad.toml")    ## Uncomment this line to use the datasets published to Data Dryad (DOI: 10.5061/dryad.dbrv15f9z)
 
-### Filtering and preparing the data
-##Computing samples and features before and after filters:
+## Loading data
+filtered_inputs = d"inputs_with_testdata"
+bins = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
-prevalence_threshold = 0.05
+##  RF Model training
 
-println("Table of combined inputs has $(nrow(combined_inputs)) samples and $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0) - 2) detected taxa before prevalence filtering")
-# -1 because one of the features is Shannon
+### Actual function for model training
+##The following block of code will train the model on the combination of cohorts, performing crossvalidation and grid-search hyperparameter optimization. Training can take several hours if the hyperparameter grid is large. It is advised to train once and store the result on a `JLD2` object so it can be accessed with `JLD2.load`-like methods for downstream analysis and plotting. Hence, the block of code should be run only once per data update.
+regression_Age_LeaveEchoOut = probe_regression_randomforest(
+    "regression_Age_LeaveEchoOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["ECHO-RESONANCE", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "ECHO-RESONANCE"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-println("Of those samples:\n\t$(sum(combined_inputs.richness .< 5 )) have 4 or less taxa detected;\n\t$(sum(combined_inputs.richness .< 4 )) have 3 or less taxa detected;\n\t$(sum(combined_inputs.richness .< 3 )) have 2 or less taxa detected.\n\t$(sum(combined_inputs.richness .< 2 )) have 1 or less taxa detected; \n\t$(sum(combined_inputs.richness .< 1 )) have 0 taxa detected; " )
+@show sort(report_regression_merits(regression_Age_LeaveEchoOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveEchoOut.jld") regression_Age_LeaveEchoOut
 
-println("Of the $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0)) features, only $(ncol(filter_prevalence(combined_inputs, prevalence_threshold)[:, 11:end]) - 1) pass a universal prevalence of $(prevalence_threshold) filter")
+regression_Age_LeaveCMDOut = probe_regression_randomforest(
+    "regression_Age_LeaveCMDOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["CMD-OTHER", "CMD-DIABIMMUNE", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .∈ Ref(["CMD-OTHER", "CMD-DIABIMMUNE"])),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-println("After prevalence filtering, there are $(sum(map(sum, eachrow(filter_prevalence(combined_inputs, prevalence_threshold)[:, 11:end-2])) .== 0.0 ) ) samples that end up with no abundance on the remaining taxa")
+@show sort(report_regression_merits(regression_Age_LeaveCMDOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveCMDOut.jld") regression_Age_LeaveCMDOut
 
-filtered_inputs = filter_prevalence(combined_inputs, prevalence_threshold)
-filtered_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(filtered_inputs[:, 11:ncol(filtered_inputs)-2])))
+regression_Age_LeaveKhulaOut = probe_regression_randomforest(
+    "regression_Age_LeaveKhulaOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-KHULA", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-KHULA"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness should be at least 1.
-select!(filtered_inputs, Not(:richness))
+@show sort(report_regression_merits(regression_Age_LeaveKhulaOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveKhulaOut.jld") regression_Age_LeaveKhulaOut
 
-# CSV.write("manuscript/final_manuscript_inputs.csv", filtered_inputs)
+regression_Age_LeaveGerminaOut = probe_regression_randomforest(
+    "regression_Age_LeaveGerminaOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-GERMINA", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-GERMINA"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-# ##  RF Model training
+@show sort(report_regression_merits(regression_Age_LeaveGerminaOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveGerminaOut.jld") regression_Age_LeaveGerminaOut
 
-# ### Actual function for model training
-# ##The following block of code will train the model on the combination of cohorts, performing crossvalidation and grid-search hyperparameter optimization. Training can take several hours if the hyperparameter grid is large. It is advised to train once and store the result on a `JLD2` object so it can be accessed with `JLD2.load`-like methods for downstream analysis and plotting. Hence, the block of code should be run only once per data update.
-# regression_Age_LeaveEchoOut = probe_regression_randomforest(
-#     "regression_Age_LeaveEchoOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["ECHO-RESONANCE", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "ECHO-RESONANCE"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
+regression_Age_LeaveCombineOut = probe_regression_randomforest(
+    "regression_Age_LeaveCombineOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-COMBINE", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-COMBINE"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-# @show sort(report_regression_merits(regression_Age_LeaveEchoOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveEchoOut.jld") regression_Age_LeaveEchoOut
+@show sort(report_regression_merits(regression_Age_LeaveCombineOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveCombineOut.jld") regression_Age_LeaveCombineOut
 
-# regression_Age_LeaveCMDOut = probe_regression_randomforest(
-#     "regression_Age_LeaveCMDOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["CMD-OTHER", "CMD-DIABIMMUNE", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .∈ Ref(["CMD-OTHER", "CMD-DIABIMMUNE"])),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
+regression_Age_LeaveM4EFADOut = probe_regression_randomforest(
+    "regression_Age_LeaveM4EFADOut",
+    subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-M4EFAD", "ENNIS"])),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-M4EFAD"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-# @show sort(report_regression_merits(regression_Age_LeaveCMDOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveCMDOut.jld") regression_Age_LeaveCMDOut
+@show sort(report_regression_merits(regression_Age_LeaveM4EFADOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveM4EFADOut.jld") regression_Age_LeaveM4EFADOut
 
-# regression_Age_LeaveKhulaOut = probe_regression_randomforest(
-#     "regression_Age_LeaveKhulaOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-KHULA", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-KHULA"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
+regression_Age_LeaveEnnisOut = probe_regression_randomforest(
+    "regression_Age_LeaveEnnisOut",
+    subset(filtered_inputs, :datasource => x -> x .!== "ENNIS"),
+    identity,
+    collect(11:ncol(filtered_inputs)),
+    :ageMonths;
+    split_strat = "subject",
+    ext_df = subset(filtered_inputs, :datasource => x -> x .== "ENNIS"),
+    ext_firstinputcol = 11,
+    ext_uniquecol = :sample,
+    unique_col = :sample,
+    n_folds = 5,
+    n_replicas = 100,
+    n_rngs = 5,
+    tuning_space = (; #PRODUCTION
+        maxnodes_range = [ -1 ],
+        nodesize_range = [ 5 ],
+        min_samples_split = [ 2 ],
+        sampsize_range = [ 0.8 ],
+        mtry_range = [ -1 ],
+        ntrees_range = [ 200 ]
+    )
+)
 
-# @show sort(report_regression_merits(regression_Age_LeaveKhulaOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveKhulaOut.jld") regression_Age_LeaveKhulaOut
-
-# regression_Age_LeaveGerminaOut = probe_regression_randomforest(
-#     "regression_Age_LeaveGerminaOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-GERMINA", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-GERMINA"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
-
-# @show sort(report_regression_merits(regression_Age_LeaveGerminaOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveGerminaOut.jld") regression_Age_LeaveGerminaOut
-
-# regression_Age_LeaveCombineOut = probe_regression_randomforest(
-#     "regression_Age_LeaveCombineOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-COMBINE", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-COMBINE"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
-
-# @show sort(report_regression_merits(regression_Age_LeaveCombineOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveCombineOut.jld") regression_Age_LeaveCombineOut
-
-# regression_Age_LeaveM4EFADOut = probe_regression_randomforest(
-#     "regression_Age_LeaveM4EFADOut",
-#     subset(filtered_inputs, :datasource => x -> x .∉ Ref(["1kDLEAP-M4EFAD", "ENNIS"])),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "1kDLEAP-M4EFAD"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
-
-# @show sort(report_regression_merits(regression_Age_LeaveM4EFADOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveM4EFADOut.jld") regression_Age_LeaveM4EFADOut
-
-# regression_Age_LeaveEnnisOut = probe_regression_randomforest(
-#     "regression_Age_LeaveEnnisOut",
-#     subset(filtered_inputs, :datasource => x -> x .!== "ENNIS"),
-#     identity,
-#     collect(11:ncol(filtered_inputs)),
-#     :ageMonths;
-#     split_strat = "subject",
-#     ext_df = subset(filtered_inputs, :datasource => x -> x .== "ENNIS"),
-#     ext_firstinputcol = 11,
-#     ext_uniquecol = :sample,
-#     unique_col = :sample,
-#     n_folds = 5,
-#     n_replicas = 100,
-#     n_rngs = 5,
-#     tuning_space = (; #PRODUCTION
-#         maxnodes_range = [ -1 ],
-#         nodesize_range = [ 5 ],
-#         min_samples_split = [ 2 ],
-#         sampsize_range = [ 0.8 ],
-#         mtry_range = [ -1 ],
-#         ntrees_range = [ 200 ]
-#     )
-# )
-
-# @show sort(report_regression_merits(regression_Age_LeaveEnnisOut), :Val_RMSE_mean)
-# JLD2.@save joinpath(outdir, "regression_Age_LeaveEnnisOut.jld") regression_Age_LeaveEnnisOut
+@show sort(report_regression_merits(regression_Age_LeaveEnnisOut), :Val_RMSE_mean)
+JLD2.@save joinpath(outdir, "regression_Age_LeaveEnnisOut.jld") regression_Age_LeaveEnnisOut
 
 ##After the code is run at least once, the results can then be loaded with:
 JLD2.@load joinpath(outdir, "regression_Age_LeaveEchoOut.jld") regression_Age_LeaveEchoOut
