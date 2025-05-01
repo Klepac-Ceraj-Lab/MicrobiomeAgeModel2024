@@ -7,6 +7,21 @@ using DataFrames
 using BiobakeryUtils
 using Chain
 
+
+function new_load_raw_metaphlan(manual_path::String; replace_pattern = r"FG\d+_S\d+_profile")
+
+    @show df = DataFrame(file = filter(f-> contains(f, replace_pattern), readdir(manual_path, join=true)))
+
+    df.sample = map(s-> replace(s, "_mpa_v31_CHOCOPhlAn_201901_profile.tsv"=> ""), basename.(df.file))
+    df.sample_base = map(s-> replace(s, r"_S\d+"=>""), df.sample)
+
+    #knead = load(ReadCounts())
+    taxa = metaphlan_profiles(df.file; samples = df.sample)
+    set!(taxa, df)
+    #set!(taxa, select(knead, "sample_uid"=>"sample", AsTable(["final pair1", "final pair2"])=> ByRow(row-> row[1]+row[2]) =>"read_depth"))
+    taxa
+end
+
 #####
 # 1. CuratedMetagenomicData
 #####
@@ -125,8 +140,10 @@ combine_pre_data = @chain innerjoin(combine_mdata, combine_profiles, on = :sampl
 end
 
 ## 1.5. 1kD LEAP KHULA
+khula_ages = CSV.read("/home/guilherme/Repos/Leap/processed_data/attic/OLD2_khula_ages_visit_reltable.csv", DataFrame)
 khula_ages = CSV.read("/home/guilherme/Repos/Leap/processed_data/khula_ages_visit_reltable.csv", DataFrame)
-khula_pre_data = @chain Leap.load_raw_metaphlan(;replace_pattern = r"SEQ0\d+_S\d+_profile") begin
+# khula_pre_data = @chain Leap.load_raw_metaphlan("/grace/sequencing/processed/mgx/metaphlan/mpa_v31_CHOCOPhlAn_201901/"; replace_pattern = r"SEQ0\d+_S\d+_mpa_v31_CHOCOPhlAn_201901_profile") begin
+khula_pre_data = @chain new_load_raw_metaphlan("/grace/sequencing/processed/mgx/metaphlan/mpa_v31_CHOCOPhlAn_201901/"; replace_pattern = r"SEQ0\d+_S\d+_mpa_v31_CHOCOPhlAn_201901_profile") begin
     filter(t-> !ismissing(taxrank(t)), _[:, samplenames(_)])
     filter(t-> taxrank(t) == :species, _[:, samplenames(_)])
     comm2wide()

@@ -26,6 +26,7 @@ using StableRNGs
 using Polynomials
 using MLJ
 using MLJDecisionTreeInterface
+using DataToolkit
 
 ### Configurable parameters
 master_colors = Dict(
@@ -49,30 +50,8 @@ isdir(outdir) ? @warn("Directory $(outdir) already exists! This notebook will ov
 presence_absence = false # This argument will control whether the model will be based on abundances or binary presence/absence
 ## Loading data
 
-### Loading taxonomic profiles from all the cohorts
-## This line will evoke the auxiliary notebook that contains the code to load data from all cohorts
-include("/home/guilherme/.julia/dev/MicrobiomeAgeModel2024/notebooks/allcohorts_data_loading_nofeed.jl")
-combined_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(combined_inputs[:, 11:ncol(combined_inputs)-1])))
-
-### Filtering and preparing the data
-##Computing samples and features before and after filters:
-
-prevalence_threshold = 0.05
-
-println("Table of combined inputs has $(nrow(combined_inputs)) samples and $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0) - 2) detected taxa before prevalence filtering")
-# -1 because one of the features is Shannon
-
-println("Of those samples:\n\t$(sum(combined_inputs.richness .< 5 )) have 4 or less taxa detected;\n\t$(sum(combined_inputs.richness .< 4 )) have 3 or less taxa detected;\n\t$(sum(combined_inputs.richness .< 3 )) have 2 or less taxa detected.\n\t$(sum(combined_inputs.richness .< 2 )) have 1 or less taxa detected; \n\t$(sum(combined_inputs.richness .< 1 )) have 0 taxa detected; " )
-
-println("Of the $(sum(map(sum, eachcol(combined_inputs[:, 11:end])) .> 0.0)) features, only $(ncol(filter_prevalence(combined_inputs, prevalence_threshold)[:, 11:end]) - 1) pass a universal prevalence of $(prevalence_threshold) filter")
-
-println("After prevalence filtering, there are $(sum(map(sum, eachrow(filter_prevalence(combined_inputs, prevalence_threshold)[:, 11:end-2])) .== 0.0 ) ) samples that end up with no abundance on the remaining taxa")
-
-filtered_inputs = filter_prevalence(combined_inputs, prevalence_threshold)
-filtered_inputs.richness = map(x -> sum(x .> 0.0), eachrow(Matrix(filtered_inputs[:, 11:ncol(filtered_inputs)-2])))
-
-subset!(filtered_inputs, :richness => x -> x .>= 1) # Minimum sample richness should be at least 1.
-select!(filtered_inputs, Not(:richness))
+DataToolkit.loadcollection!("./Data_Local.toml")    ## Uncomment this line to use local files located on the "data" subfolder and the Local relative filesystem references
+filtered_inputs = d"filtered_taxonomic_inputs"
 
 ##After the code is run at least once, the results can then be loaded with:
 JLD2.@load joinpath(outdir, "regression_Age_LeaveEchoOut.jld") regression_Age_LeaveEchoOut
@@ -106,15 +85,35 @@ echo_predictions =  @chain regression_Age_LeaveEnnisOut begin
     subset!(:datasource => x -> x .== "ECHO-RESONANCE")
 end
 
-## Loading brain data
+# ## Loading brain data //Version 0.1 - old brain data
 
-brain_df = CSV.read(inputfiles("brain_normalized.csv"), DataFrame)
-fact = brain_df."White-matter" .+ brain_df."Gray-matter"
-for f in names(brain_df, Not(["subject", "timepoint"]))
-    # brain_df[!, f] ./= fact
+# # brain_df = CSV.read(inputfiles("brain_normalized.csv"), DataFrame)
+# fact = brain_df."White-matter" .+ brain_df."Gray-matter"
+# for f in names(brain_df, Not(["subject", "timepoint"]))
+#     # brain_df[!, f] ./= fact
 
-    brain_df[!, f] .= log10.((brain_df[!, f] ./ fact) .+ 1e-10)
+#     brain_df[!, f] .= log10.((brain_df[!, f] ./ fact) .+ 1e-10)
+# end
+
+# resmdata = @chain CSV.read("/home/guilherme/Repos/Resonance/resonance_mdata.csv", DataFrame) begin
+#     select!([ :subject, :timepoint, :sample])
+#     dropmissing()
+# end
+
+# brain_df = innerjoin(resmdata, brain_df, on = [ :subject => :subject, :timepoint => :timepoint ])
+
+# echo_predictions.sample = map(x -> split(x, '_')[1], echo_predictions.sample)
+
+# joined_brain_df = innerjoin(echo_predictions, brain_df, on = :sample)
+
+
+
+brain_df = @chain CSV.read("data/2024-12_EchoNewBrainVolumes.csv", DataFrame) begin
+    select!(Not(:subject))
+    rename!( :StudyID => :subject, :Timepoint => :timepoint)
 end
+
+
 
 resmdata = @chain CSV.read("/home/guilherme/Repos/Resonance/resonance_mdata.csv", DataFrame) begin
     select!([ :subject, :timepoint, :sample])
@@ -124,44 +123,150 @@ end
 brain_df = innerjoin(resmdata, brain_df, on = [ :subject => :subject, :timepoint => :timepoint ])
 
 echo_predictions.sample = map(x -> split(x, '_')[1], echo_predictions.sample)
-
 joined_brain_df = innerjoin(echo_predictions, brain_df, on = :sample)
+
+samps_to_remove = [ "SEQ02403" ]
+subset!(joined_brain_df, :sample => x -> x .∉ Ref(samps_to_remove))
+
+CSV.write("new_brain_inputs.csv", joined_brain_df)
 
 #####
 # Building the stats
 #####
 
-function myrf(data, target)
-    # Split data into features (X) and target (y)
-    y, X = unpack(data, ==(target))
-    train, test = partition(collect(1:length(y)), 0.75, shuffle=true)
+# function myrf(data, target)
+#     # Split data into features (X) and target (y)
+#     y, X = unpack(data, ==(target))
+#     train, test = partition(collect(1:length(y)), 0.75, shuffle=true)
 
-    model = MLJDecisionTreeInterface.RandomForestRegressor()
-    mach = machine(model, X, y)
-    fit!(mach, rows=train)
+#     model = MLJDecisionTreeInterface.RandomForestRegressor()
+#     mach = machine(model, X, y)
+#     fit!(mach, rows=train)
 
-    # Predict on both train and test sets
-    y_train_pred = MLJ.predict(mach, rows=train)
-    y_test_pred = MLJ.predict(mach, rows=test)
+#     # Predict on both train and test sets
+#     y_train_pred = MLJ.predict(mach, rows=train)
+#     y_test_pred = MLJ.predict(mach, rows=test)
 
-    # Compute correlations
-    train_corr = cor(y[train], y_train_pred)
-    test_corr = cor(y[test], y_test_pred)
+#     # Compute correlations
+#     train_corr = cor(y[train], y_train_pred)
+#     test_corr = cor(y[test], y_test_pred)
 
-    # Evaluate RMS on test set
-    rms_test = rms(y_test_pred, y[test])
+#     # Evaluate RMS on test set
+#     rms_test = rms(y_test_pred, y[test])
 
-    return (
-        model=mach,
-        train_predictions=y_train_pred,
-        test_predictions=y_test_pred,
-        train_correlation=train_corr,
-        test_correlation=test_corr,
-        test_rms=rms_test
-    )
-end
+#     return (
+#         model=mach,
+#         train_predictions=y_train_pred,
+#         test_predictions=y_test_pred,
+#         train_correlation=train_corr,
+#         test_correlation=test_corr,
+#         test_rms=rms_test
+#     )
+# end
 
-brain_segments = names(select(brain_df, Not([:subject, :timepoint, :sample])))
+# brain_segments = names(select(brain_df, Not([:subject, :timepoint, :sample])))
+brain_segments = [
+    "left_cerebral_white_matter",
+    "left_cerebral_cortex",
+    "left_lateral_ventricle",
+    "left_inferior_lateral_ventricle",
+    "left_cerebellum_white_matter",
+    "left_cerebellum_cortex",
+    "left_thalamus",
+    "left_caudate",
+    "left_putamen",
+    "left_pallidum",
+    "3rd_ventricle",
+    "4th_ventricle",
+    "brain-stem",
+    "left_hippocampus",
+    "left_amygdala",
+    "csf",
+    "left_accumbens_area",
+    "left_ventral_DC",
+    "right_cerebral_white_matter",
+    "right_cerebral_cortex",
+    "right_lateral_ventricle",
+    "right_inferior_lateral_ventricle",
+    "right_cerebellum_white_matter",
+    "right_cerebellum_cortex",
+    "right_thalamus",
+    "right_caudate",
+    "right_putamen",
+    "right_pallidum",
+    "right_hippocampus",
+    "right_amygdala",
+    "right_accumbens_area",
+    "right_ventral_DC",
+    "ctx-lh-bankssts",
+    "ctx-lh-caudalanteriorcingulate",
+    "ctx-lh-caudalmiddlefrontal",
+    "ctx-lh-cuneus",
+    "ctx-lh-entorhinal",
+    "ctx-lh-fusiform",
+    "ctx-lh-inferiorparietal",
+    "ctx-lh-inferiortemporal",
+    "ctx-lh-isthmuscingulate",
+    "ctx-lh-lateraloccipital",
+    "ctx-lh-lateralorbitofrontal",
+    "ctx-lh-lingual",
+    "ctx-lh-medialorbitofrontal",
+    "ctx-lh-middletemporal",
+    "ctx-lh-parahippocampal",
+    "ctx-lh-paracentral",
+    "ctx-lh-parsopercularis",
+    "ctx-lh-parsorbitalis",
+    "ctx-lh-parstriangularis",
+    "ctx-lh-pericalcarine",
+    "ctx-lh-postcentral",
+    "ctx-lh-posteriorcingulate",
+    "ctx-lh-precentral",
+    "ctx-lh-precuneus",
+    "ctx-lh-rostralanteriorcingulate",
+    "ctx-lh-rostralmiddlefrontal",
+    "ctx-lh-superiorfrontal",
+    "ctx-lh-superiorparietal",
+    "ctx-lh-superiortemporal",
+    "ctx-lh-supramarginal",
+    "ctx-lh-frontalpole",
+    "ctx-lh-temporalpole",
+    "ctx-lh-transversetemporal",
+    "ctx-lh-insula",
+    "ctx-rh-bankssts",
+    "ctx-rh-caudalanteriorcingulate",
+    "ctx-rh-caudalmiddlefrontal",
+    "ctx-rh-cuneus",
+    "ctx-rh-entorhinal",
+    "ctx-rh-fusiform",
+    "ctx-rh-inferiorparietal",
+    "ctx-rh-inferiortemporal",
+    "ctx-rh-isthmuscingulate",
+    "ctx-rh-lateraloccipital",
+    "ctx-rh-lateralorbitofrontal",
+    "ctx-rh-lingual",
+    "ctx-rh-medialorbitofrontal",
+    "ctx-rh-middletemporal",
+    "ctx-rh-parahippocampal",
+    "ctx-rh-paracentral",
+    "ctx-rh-parsopercularis",
+    "ctx-rh-parsorbitalis",
+    "ctx-rh-parstriangularis",
+    "ctx-rh-pericalcarine",
+    "ctx-rh-postcentral",
+    "ctx-rh-posteriorcingulate",
+    "ctx-rh-precentral",
+    "ctx-rh-precuneus",
+    "ctx-rh-rostralanteriorcingulate",
+    "ctx-rh-rostralmiddlefrontal",
+    "ctx-rh-superiorfrontal",
+    "ctx-rh-superiorparietal",
+    "ctx-rh-superiortemporal",
+    "ctx-rh-supramarginal",
+    "ctx-rh-frontalpole",
+    "ctx-rh-temporalpole",
+    "ctx-rh-transversetemporal",
+    "ctx-rh-insula"
+]
 
 variables = String[]
 age_cors = Float64[]
@@ -178,6 +283,11 @@ for this_segment in brain_segments
 
     push!(variables, this_segment)
 
+    joined_brain_df[:, this_segment] = joined_brain_df[:, this_segment] ./ joined_brain_df[:,"total_intracranial"]
+    joined_brain_df[:, this_segment] = -log10.(joined_brain_df[:, this_segment] .+ 1e-10)
+
+    @show sort(select(joined_brain_df, ["sample", this_segment]), Symbol(this_segment); rev=true)
+
     push!(age_cors, cor(joined_brain_df.ageMonths, joined_brain_df[:, this_segment]))
     agelmod = lm(@formula(a ~ b), DataFrame(:a => joined_brain_df[:, this_segment], :b => joined_brain_df.ageMonths))
     push!(age_pval, coeftable(agelmod).cols[4][2])
@@ -185,7 +295,6 @@ for this_segment in brain_segments
     push!(pred_cors, cor(joined_brain_df.test_prediction, joined_brain_df[:, this_segment]))
     predlmod = lm(@formula(a ~ b), DataFrame(:a => joined_brain_df[:, this_segment], :b => joined_brain_df.test_prediction))
     push!(pred_pval, coeftable(predlmod).cols[4][2])
-
 
     push!(error_cors, cor(joined_brain_df.l1_error, joined_brain_df[:, this_segment]))
     errorlmod = lm(@formula(a ~ b), DataFrame(:a => joined_brain_df[:, this_segment], :b => joined_brain_df.l1_error))
@@ -207,18 +316,20 @@ for this_segment in brain_segments
             split_strat = nothing,
             unique_col = :smp,
             n_folds = 4,
-            n_replicas = 50,
+            n_replicas = 10,
             n_rngs = 4,
             tuning_space = (; #PRODUCTION
-                maxnodes_range = [ 5 ],
-                nodesize_range = [ 7 ],
-                min_samples_split = [3 ],
+                maxnodes_range = [ 3, 5 ],
+                nodesize_range = [ 7, 9 ],
+                min_samples_split = [ 2, 3 ],
                 sampsize_range = [ 0.8 ],
-                mtry_range = [ -1 ],
-                ntrees_range = [ 200 ]
-            )
+                mtry_range = [ -1, 0 ],
+                ntrees_range = [ 128 ]
+            ),
+            verbose = false
         )   
         # @show rfres = myrf(lmod_df, :a)
+        @show report_regression_merits(regrf)
         push!(rfmodel_traincors, report_regression_merits(regrf).Train_Cor_mean[1])
         push!(rfmodel_testcors, report_regression_merits(regrf).Val_Cor_mean[1])
     catch
@@ -249,15 +360,49 @@ correlations_df.modiff = abs.(correlations_df.rf_testcor) .- abs.(correlations_d
 
 sort(correlations_df, :modiff)
 
+## Group 1 - Very good by itself, not much added by mbiome age
+# ctx-lh-fusiform
+# ctx-rh-entorhinal
+# ctx-lh-transversetemporal
+# ctx-lh-frontalpole
+# left_thalamus
+# right_thalamus
+
+## Group 2 - Not really good by itself, mbiome age perhaps improves?
+# ctx-lh-parsorbitalis
+
+## Group 4 - Behaves better with Age GAP
+# ctx-lh-bankssts
+# ctx-lh-precuneus
+# ctx-rh-paracentral
+
+# Group 5 - really shines on RF
+# ctx-lh-parsorbitalis
+# ctx-rh-superiorfrontal
+# right_putamen
+# ctx-rh-caudalanteriorcingulate
+# ctx-rh-precentral
+# ctx-rh-superiorparietal
+
+# regions_toplot = [
+#     "left-cuneus",
+#     "Brain-stem",
+#     "left-caudal-middle-frontal",
+#     "left-pericalcarine",
+#     "right-cuneus",
+#     "left-precentral",
+#     "right-precuneus",
+#     "right-accumbens-area"
+# ]
+
 regions_toplot = [
-    "left-cuneus",
-    "Brain-stem",
-    "left-caudal-middle-frontal",
-    "left-pericalcarine",
-    "right-cuneus",
-    "left-precentral",
-    "right-precuneus",
-    "right-accumbens-area"
+    "ctx-lh-fusiform",
+    "left_thalamus",
+    "right_cerebellum_cortex",
+    "ctx-rh-precentral",
+    "ctx-rh-paracentral",
+    "ctx-lh-parsorbitalis",
+    "right_putamen",
 ]
 
 idxes_toplot = [ 1,2,3,4,5,6
@@ -291,7 +436,7 @@ for (i, j) in enumerate(regions_toplot)
 
     ax5 = Axis(supp_figure6_master[5,i], xlabel = "age + gap (nonlinear)", ylabel = "log(rel.vol.)")
     rf_df = DataFrame(:smp => joined_brain_df.sample, :a => joined_brain_df[:, j], :b => joined_brain_df.ageMonths , :c => joined_brain_df.l1_error)
-
+    show(rf_df, allrows=true)
     regrf = probe_regression_randomforest(
             j,
             rf_df,
@@ -310,7 +455,7 @@ for (i, j) in enumerate(regions_toplot)
                 sampsize_range = [ 0.8 ],
                 mtry_range = [ -1 ],
                 ntrees_range = [ 200 ]
-            )
+            ), verbose=false
         )   
         preds = get_set_predictions(regrf, "val"; unique_col = :smp)
         plot_Df = innerjoin(preds, rf_df, on = :sample =>:smp)
@@ -319,7 +464,7 @@ for (i, j) in enumerate(regions_toplot)
 end
 
 supp_figure6_master
-save("brain_agemodel.png", supp_figure6_master)
+save("brain_agemodel_newdata.png", supp_figure6_master)
 
 
 #####
