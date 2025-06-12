@@ -17,7 +17,7 @@ using MicrobiomeAgeModel2024
 const REQUESTS_ROOT = "runs"  # ← change to wherever you want
 
 # 1) load your trained RegressionProbeData
-JLD2.@load "results/2025MaaSDev/AgeModel_FullCV_Results.jld"
+JLD2.@load "models/AgeModel_FullCV_Results.jld"
 # JLD2.@load "AgeModel_FullCV_Results.jld"
 
 function _dispatch_tsv(path::String)
@@ -258,5 +258,5 @@ application_router = HTTP.Router()
 HTTP.@register(application_router, "POST", "/age_model_v1/prediction", prediction_handler)
 HTTP.@register(application_router, "GET", "/age_model_v1/download", download_handler)
 
-
+println("Starting server now...")
 HTTP.serve(application_router, "0.0.0.0", 1025)
