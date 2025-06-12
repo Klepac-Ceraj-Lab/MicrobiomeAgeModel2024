@@ -29,7 +29,7 @@ using MicrobiomeAgeModel2024
 
 ### Configurable parameters and notebook set-up
 ```julia
-outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2024AgeModelFinalSubmission")
+outdir, figdir, deepdivemonodir, deepdivecolordir = setup_outdir(; experiment_name = "2025MaaSDev")
 presence_absence = false # This argument controls whether the analysis will be based on continous relative abundances or binary presence/absence of species.
 ```
 #### UNCOMMENT ONLY ONE OF THE FOLLOWING 3 LINES TO PICK A SOURCE FOR THE ANALYSIS DATA
@@ -106,12 +106,13 @@ regression_Age_FullCV = probe_regression_randomforest( ## Quick version that per
     identity,
     collect(11:ncol(combined_inputs)),
     :ageMonths;
+    store_machines = true,
     split_strat = "subject",
     custom_input_group = nothing,
     unique_col = :sample,
     n_folds = 5,
-    n_replicas = 100,
-    n_rngs = 5,
+    n_replicas = 10,
+    n_rngs = 2,
     tuning_space = (; #PRODUCTION
         maxnodes_range = [ -1 ],
         nodesize_range = [ 5 ],
@@ -125,6 +126,12 @@ regression_Age_FullCV = probe_regression_randomforest( ## Quick version that per
 # JLD2.@save joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
 ```
 
+```julia
+## Testing the inference workflow
+@show predict_regression_runtime(regression_Age_FullCV, select(filtered_inputs, 1:50))
+```
+
+
 After the code is run at leat once, the results can then be loaded with:
 ```julia
 # JLD2.@load joinpath(outdir, "AgeModel_FullCV_Results.jld") regression_Age_FullCV
@@ -134,11 +141,14 @@ Assuming that `outdir` points to the same place where the model was stored when 
 
 # Creating Master Figure 2
 ```julia
+
 figure2_master = Figure(; size = (1200, 850))
 
 A_Subfig = GridLayout(figure2_master[1,1], alignmode=Inside())
 B_Subfig = GridLayout(figure2_master[1,2], alignmode=Inside())
 CDEFG_Subfig  = GridLayout(figure2_master[2,1:2], alignmode=Inside())
+
+figure2_ppt = Figure(; size = (800, 800))
 ```
 
 ## Scatterplot
@@ -206,6 +216,31 @@ Legend(
     margin=(0,0,-20,20), #right, left, bottom, top
     alignmode = Inside()
 )
+
+## PPT version
+axA_PPT = Axis(
+    figure2_ppt[1,1];
+    xlabel = "Sample collection age (months)",
+    xticks = (2:1:18),
+    ylabel = "Microbial age (months)",
+    yticks = (2:1:18),
+    aspect = AxisAspect(1.0)
+    # alignmode = Outside(),
+    # title = "Predictions for Test/Validation data"
+)
+hidedecorations!(axA_PPT, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+xlims!(axA_PPT, [1.99, 18.01]); ylims!(axA_PPT, [1.99, 18.01])
+@chain regression_Age_FullCV begin
+    predictions_to_plot(filtered_inputs, age_bins, "val"; hp = hp_idx)
+    scatter!(axA_PPT, _[:, :ageMonths],  _[:, :test_prediction], color = [ (ccol, 0.6) for ccol in _[:, "datacolor"] ], marker = :circle)
+end
+ablines!(axA_PPT, 0, 1; linestyle = :dash, linewidth=2, color = :gray )
+
+save(joinpath(outdir, "figures", "Figure2_A_PPT.png"), figure2_ppt)
+save(joinpath(outdir, "figures", "Figure2_A_PPT.eps"), figure2_ppt)
+save(joinpath(outdir, "figures", "Figure2_A_PPT.svg"), figure2_ppt)
+save(joinpath(outdir, "figures", "Figure2_A_PPT.pdf"), figure2_ppt)
+
 ```
 
 ## Figure 2, Panel B - Importance plots
@@ -617,4 +652,112 @@ CSV.write(
     joinpath(outdir, "SourceData_Fig2CDEFG.csv"),
     select(combined_inputs, ["sample", "datasource", "datacolor", "ageMonths",  importances_table.variable[1:nfeat_toplot]... ])   
 )
+```
+
+### Creating supplementary AlphaDiv figure
+```julia
+supp_figureZZ_master = Figure(; size = (2000, 1400))
+
+TOP_Subfig = GridLayout(supp_figureZZ_master[1,1], alignmode=Inside())
+BTM_Subfig = GridLayout(supp_figureZZ_master[2,1], alignmode=Inside())
+
+top_ax11 = Axis(
+    TOP_Subfig[1,1];
+    xlabel = "Age in Months",
+    ylabel = "Alpha Diversity (Shannon)",
+    xticks = 2:1:18,
+    yticklabelsize=14,
+    titlefont="TeX Gyre Heros Makie Regular"
+)
+
+xlims!(top_ax11, (1.99, 18.01))
+# ylims!(top_ax11, (-0.01, 4.01))
+ylims!(top_ax11, (-0.01, 130.01))
+hidexdecorations!(top_ax11, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+hideydecorations!(top_ax11, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+scatter!(
+    top_ax11,
+    combined_inputs.ageMonths,
+    combined_inputs.richness,
+    color = combined_inputs.datacolor
+)
+
+Legend(
+    TOP_Subfig[2, 1],
+    [
+        PolyElement(color = master_colors["CMD"]),
+        PolyElement(color = master_colors["ECHO-RESONANCE"]),
+        PolyElement(color = master_colors["1kDLEAP-GERMINA"]),
+        PolyElement(color = master_colors["1kDLEAP-KHULA"]),
+        PolyElement(color = master_colors["1kDLEAP-COMBINE"]),
+        PolyElement(color = master_colors["1kDLEAP-M4EFAD"]),
+    ],
+    [
+        "CMD",
+        "ECHO-Resonance",
+        "1kDLEAP-Germina",
+        "1kDLEAP-Khula",
+        "1kDLEAP-Combine",
+        "1kDLEAP-M4EFaD"
+    ],
+    orientation = :vertical,
+    nbanks = 3,
+    labelsize = 12,
+    tellheight = true,
+    tellwidth = false,
+    margin=(0,0,0,0), #right, left, bottom, top
+    alignmode = Inside()
+)
+
+### Bottom matter
+
+for (i,j) in enumerate(
+    [
+        # [ "CMD-OTHER", "CMD-DIABIMMUNE" ],
+        [ "CMD-DIABIMMUNE" ],
+        [ "CMD-OTHER" ],
+        [ "ECHO-RESONANCE" ],
+        [ "1kDLEAP-GERMINA" ],
+        [ "1kDLEAP-KHULA" ],
+        [ "1kDLEAP-COMBINE" ],
+        [ "1kDLEAP-M4EFAD" ]
+    ]
+    )
+
+    this_btm_ax = top_ax11 = Axis(
+        BTM_Subfig[1,i];
+        xlabel = "Age in Months",
+        ylabel = "Alpha Diversity (Shannon)",
+        xticks = 2:1:18,
+        yticklabelsize=14,
+        titlefont="TeX Gyre Heros Makie Regular"
+    )
+
+    xlims!(this_btm_ax, (1.99, 18.01))
+    # ylims!(this_btm_ax, (-0.01, 4.01))
+    ylims!(top_ax11, (-0.01, 130.01))
+    hidexdecorations!(top_ax11, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+    hideydecorations!(top_ax11, label = false, ticklabels = false, ticks = false, minorgrid = true, minorticks = true)
+
+    subset_toplot = subset(combined_inputs, :datasource => x -> x .∈ Ref(j) )
+
+    scatter!(
+        this_btm_ax,
+        subset_toplot.ageMonths,
+        subset_toplot.richness,
+        color = subset_toplot.datacolor
+    )
+
+end 
+
+rowgap!(supp_figureZZ_master.layout, 5)
+rowsize!(supp_figureZZ_master.layout, 1, Relative(0.7))
+rowsize!(supp_figureZZ_master.layout, 2, Relative(0.3))
+
+save(joinpath(outdir, "figures", "FigureSZZ.png"), supp_figureZZ_master)
+save(joinpath(outdir, "figures", "FigureSZZ.eps"), supp_figureZZ_master)
+save(joinpath(outdir, "figures", "FigureSZZ.svg"), supp_figureZZ_master)
+save(joinpath(outdir, "figures", "FigureSZZ.pdf"), supp_figureZZ_master)
+supp_figureZZ_master
 ```
